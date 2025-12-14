@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>格挡反击游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            background: #0a0a0a;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            color: white;
+        }
+        #energyBar {
+            width: 100%;
+            height: 20px;
+            background: #222;
+            border: 2px solid #444;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        #energyFill {
+            height: 100%;
+            background: linear-gradient(90deg, #00f, #0ff);
+            transition: width 0.1s, background 0.3s;
+        }
+        #energyFill.low {
+            background: linear-gradient(90deg, #f00, #f80);
+        }
+        #energyFill.medium {
+            background: linear-gradient(90deg, #ff0, #fa0);
+        }
+        #stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            display: none;
+        }
+        #gameOver h1 {
+            margin-bottom: 20px;
+            font-size: 48px;
+        }
+        #gameOver p {
+            margin: 10px 0;
+            font-size: 24px;
+        }
+        #gameOver button {
+            margin-top: 20px;
+            padding: 15px 40px;
+            font-size: 20px;
+            background: #0af;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        #gameOver button:hover {
+            background: #0cf;
+        }
+        #startScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+        }
+        #startScreen h1 {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        #startScreen p {
+            font-size: 20px;
+            margin: 10px 0;
+        }
+        #startScreen button {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 24px;
+            background: #0af;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        #startScreen button:hover {
+            background: #0cf;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="ui">
+        <div id="energyBar">
+            <div id="energyFill" style="width: 100%"></div>
+        </div>
+        <div id="stats">
+            <div>击杀数: <span id="kills">0</span></div>
+            <div>时间: <span id="time">0</span>s</div>
+        </div>
+    </div>
+    <div id="startScreen">
+        <h1>格挡反击</h1>
+        <p>WASD - 移动</p>
+        <p>空格 - 格挡</p>
+        <p>格挡成功后自动反击最近的敌人</p>
+        <button onclick="startGame()">开始游戏</button>
+    </div>
+    <div id="gameOver">
+        <h1>游戏结束</h1>
+        <p>击杀数: <span id="finalKills">0</span></p>
+        <p>存活时间: <span id="finalTime">0</span>s</p>
+        <button onclick="restartGame()">重新开始</button>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
