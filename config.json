@@ -136,7 +136,27 @@
       "freezeDuration": 150,
       "slashSize": 40,
       "slashColor": "#0ff",
-      "slashGlowColor": "#fff"
+      "slashGlowColor": "#fff",
+      "colorGradient": {
+        "enabled": true,
+        "startColor": "#0ff",
+        "midColor": "#fff",
+        "endColor": "#ffd700"
+      },
+      "trailPersistence": {
+        "enabled": true,
+        "duration": 300,
+        "fadeSpeed": 0.05
+      }
+    },
+    "perfectParry": {
+      "enabled": true,
+      "timeWindow": 100,
+      "flashIntensity": 1.5,
+      "flashColor": "#ffd700",
+      "bonusEnergy": 10,
+      "timeSlowScale": 0.1,
+      "timeSlowDuration": 200
     },
     "enemyDeath": {
       "explosionParticles": 40,

@@ -20,6 +20,8 @@ let comboTimer = 0;
 let deathAnimations = [];
 let floatingTexts = [];
 let shockwaves = [];
+let slashTrails = []; // 刀光残留
+let lastParryTime = 0; // 上次格挡时间
 
 // 加载配置
 async function loadConfig() {
@@ -99,6 +101,8 @@ function startGame() {
     deathAnimations = [];
     floatingTexts = [];
     shockwaves = [];
+    slashTrails = [];
+    lastParryTime = 0;
     
     gameLoop();
 }
@@ -455,6 +459,101 @@ function renderCombo() {
     }
 }
 
+// 创建刀光残留
+function createSlashTrail(startX, startY, endX, endY) {
+    const cfg = CONFIG.visual?.counterEffect?.trailPersistence;
+    if (!cfg || !cfg.enabled) return;
+    
+    slashTrails.push({
+        startX, startY, endX, endY,
+        alpha: 1,
+        life: cfg.duration,
+        maxLife: cfg.duration
+    });
+}
+
+// 更新刀光残留
+function updateSlashTrails() {
+    const cfg = CONFIG.visual?.counterEffect?.trailPersistence;
+    if (!cfg || !cfg.enabled) return;
+    
+    for (let i = slashTrails.length - 1; i >= 0; i--) {
+        const trail = slashTrails[i];
+        trail.life -= 16;
+        trail.alpha = trail.life / trail.maxLife;
+        
+        if (trail.life <= 0) {
+            slashTrails.splice(i, 1);
+        }
+    }
+}
+
+// 渲染刀光残留
+function renderSlashTrails() {
+    const cfg = CONFIG.visual?.counterEffect;
+    if (!cfg?.trailPersistence?.enabled) return;
+    
+    for (const trail of slashTrails) {
+        const dx = trail.endX - trail.startX;
+        const dy = trail.endY - trail.startY;
+        const angle = Math.atan2(dy, dx);
+        
+        // 绘制淡化的刀光
+        ctx.save();
+        ctx.globalAlpha = trail.alpha * 0.4;
+        
+        // 单层简化刀光
+        ctx.strokeStyle = cfg.slashColor;
+        ctx.lineWidth = cfg.slashTrailWidth * 0.5;
+        ctx.lineCap = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(trail.startX, trail.startY);
+        ctx.lineTo(trail.endX, trail.endY);
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+}
+
+// 检查是否为完美格挡
+function isPerfectParry() {
+    const cfg = CONFIG.visual?.perfectParry;
+    if (!cfg || !cfg.enabled) return false;
+    
+    const now = Date.now();
+    const timeSinceLastParry = now - lastParryTime;
+    
+    // 如果是第一次格挡或距离上次格挡很久，不算完美格挡
+    if (lastParryTime === 0 || timeSinceLastParry > 1000) {
+        return false;
+    }
+    
+    // 在时间窗口内格挡算完美格挡
+    return timeSinceLastParry <= cfg.timeWindow;
+}
+
+// 触发完美格挡效果
+function triggerPerfectParry() {
+    const cfg = CONFIG.visual?.perfectParry;
+    if (!cfg || !cfg.enabled) return;
+    
+    // 更强的闪光
+    triggerFlash(cfg.flashIntensity);
+    
+    // 更强的震动
+    triggerScreenShake(CONFIG.visual.screenShake.blockSuccess * 1.5);
+    
+    // 更慢的时间
+    triggerTimeScale(cfg.timeSlowScale, cfg.timeSlowDuration);
+    
+    // 额外能量恢复
+    energy = Math.min(CONFIG.energy.max, energy + cfg.bonusEnergy);
+    
+    // 飘字提示
+    addFloatingText(player.x, player.y - 40, 'PERFECT!', cfg.flashColor, 32);
+}
+
 // 游戏循环
 function gameLoop() {
     if (gameState !== 'playing') return;
@@ -507,6 +606,9 @@ function update() {
     // 更新冲击波
     updateShockwaves();
     
+    // 更新刀光残留
+    updateSlashTrails();
+    
     // 更新连击计时
     if (comboTimer > 0) {
         comboTimer -= 16;
@@ -537,6 +639,9 @@ function updatePlayer() {
                 
                 createParticleBurst(player.x, player.y, CONFIG.effects.killBurstCount);
             }
+            
+            // 创建刀光残留
+            createSlashTrail(player.counterStartX, player.counterStartY, player.x, player.y);
             
             player.counterAttacking = false;
             player.counterTarget = null;
@@ -733,6 +838,26 @@ function updateMeleeEnemy(enemy, now) {
             
             if (checkMeleeHit(enemy)) {
                 if (player.blocking && !player.counterAttacking) {
+                    // 检查是否为完美格挡
+                    const perfect = isPerfectParry();
+                    
+                    if (perfect) {
+                        // 完美格挡效果
+                        triggerPerfectParry();
+                        createParticleBurst(player.x, player.y, CONFIG.effects.blockBurstCount * 1.5);
+                        createShockwave(player.x, player.y, 70, '#ffd700');
+                    } else {
+                        // 普通格挡效果
+                        triggerScreenShake(CONFIG.visual.screenShake.blockSuccess);
+                        triggerTimeScale(CONFIG.visual.timeScale.blockSuccess, CONFIG.visual.timeScale.duration);
+                        triggerFlash(CONFIG.visual.flash.blockSuccess);
+                        createParticleBurst(player.x, player.y, CONFIG.effects.blockBurstCount);
+                        createShockwave(player.x, player.y, 50, '#0cf');
+                    }
+                    
+                    // 更新格挡时间
+                    lastParryTime = Date.now();
+                    
                     triggerCounter(enemy);
                     enemy.state = 'cooldown';
                     enemy.stateTime = now;
@@ -791,7 +916,27 @@ function updateBullets() {
             if (player.blocking && !player.counterAttacking) {
                 // 格挡成功
                 bullets.splice(i, 1);
-                createParticleBurst(bullet.x, bullet.y, CONFIG.effects.blockBurstCount);
+                
+                // 检查是否为完美格挡
+                const perfect = isPerfectParry();
+                
+                if (perfect) {
+                    // 完美格挡效果
+                    triggerPerfectParry();
+                    createParticleBurst(bullet.x, bullet.y, CONFIG.effects.blockBurstCount * 1.5);
+                    createShockwave(bullet.x, bullet.y, 70, '#ffd700');
+                } else {
+                    // 普通格挡效果
+                    triggerScreenShake(CONFIG.visual.screenShake.blockSuccess);
+                    triggerTimeScale(CONFIG.visual.timeScale.blockSuccess, CONFIG.visual.timeScale.duration);
+                    triggerFlash(CONFIG.visual.flash.blockSuccess);
+                    createParticleBurst(bullet.x, bullet.y, CONFIG.effects.blockBurstCount);
+                    createShockwave(bullet.x, bullet.y, 50, '#0cf');
+                }
+                
+                // 更新格挡时间
+                lastParryTime = Date.now();
+                
                 triggerCounter();
             } else if (!player.counterAttacking) {
                 // 玩家被击中
@@ -928,6 +1073,11 @@ function render() {
     
     // 渲染粒子
     renderParticles();
+    
+    // 渲染刀光残留
+    if (typeof renderSlashTrails === 'function') {
+        renderSlashTrails();
+    }
     
     // 渲染冲击波
     if (typeof renderShockwaves === 'function') {
@@ -1258,14 +1408,41 @@ function renderCounterEffect() {
         const width = cfg.slashTrailWidth * widthMultiplier;
         const alpha = (0.6 - layer * 0.15) * (1 - player.counterProgress);
         
-        // 刀光颜色：外层青色，内层白色
+        // 刀光颜色渐变：青→白→金
         let color;
-        if (layer === 0) {
-            color = cfg.slashGlowColor; // 白色核心
-        } else if (layer === 1) {
-            color = cfg.slashColor; // 青色中层
+        const gradient = cfg.colorGradient;
+        
+        if (gradient && gradient.enabled) {
+            // 根据进度改变颜色
+            const progress = player.counterProgress;
+            
+            if (layer === 0) {
+                // 核心层：白→金渐变
+                if (progress < 0.5) {
+                    color = cfg.slashGlowColor; // 白色
+                } else {
+                    color = gradient.endColor; // 金色
+                }
+            } else if (layer === 1) {
+                // 中层：青→白渐变
+                if (progress < 0.5) {
+                    color = gradient.startColor; // 青色
+                } else {
+                    color = gradient.midColor; // 白色
+                }
+            } else {
+                // 外层：蓝→青渐变
+                color = progress < 0.5 ? '#08f' : gradient.startColor;
+            }
         } else {
-            color = '#08f'; // 蓝色外层
+            // 默认颜色
+            if (layer === 0) {
+                color = cfg.slashGlowColor;
+            } else if (layer === 1) {
+                color = cfg.slashColor;
+            } else {
+                color = '#08f';
+            }
         }
         
         ctx.save();
