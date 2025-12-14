@@ -167,7 +167,27 @@
     "combo": {
       "enabled": true,
       "timeout": 3000,
-      "colors": ["#fff", "#ff0", "#f80", "#f0f", "#0ff"]
+      "colors": ["#fff", "#ff0", "#f80", "#f0f", "#0ff"],
+      "slashEnhancement": {
+        "enabled": true,
+        "threshold": 3,
+        "widthMultiplier": 1.5,
+        "particleMultiplier": 2,
+        "glowIntensity": 1.5,
+        "trailDuration": 500
+      }
+    },
+    "perfectParryCombo": {
+      "enabled": true,
+      "bonusPerCombo": 5,
+      "maxCombo": 5,
+      "comboTimeout": 2000,
+      "specialEffects": {
+        "enabled": true,
+        "rainbowSlash": true,
+        "explosionRadius": 100,
+        "timeSlowBonus": 0.05
+      }
     },
     "background": {
       "gradient": false,
@@ -181,6 +201,37 @@
       "playerGlow": 15,
       "enemyGlow": 8,
       "bulletGlow": 5
+    },
+    "audio": {
+      "enabled": true,
+      "volume": 0.5,
+      "sounds": {
+        "parry": {
+          "enabled": true,
+          "frequency": 800,
+          "duration": 0.1
+        },
+        "perfectParry": {
+          "enabled": true,
+          "frequency": 1200,
+          "duration": 0.15
+        },
+        "counter": {
+          "enabled": true,
+          "frequency": 600,
+          "duration": 0.2
+        },
+        "slash": {
+          "enabled": true,
+          "frequency": 400,
+          "duration": 0.3
+        },
+        "kill": {
+          "enabled": true,
+          "frequency": 1000,
+          "duration": 0.2
+        }
+      }
     },
     "clarity": {
       "enabled": true,

@@ -22,6 +22,9 @@ let floatingTexts = [];
 let shockwaves = [];
 let slashTrails = []; // 刀光残留
 let lastParryTime = 0; // 上次格挡时间
+let perfectParryCombo = 0; // 完美格挡连击数
+let perfectParryComboTimer = 0; // 完美格挡连击计时器
+let audioContext = null; // 音频上下文
 
 // 加载配置
 async function loadConfig() {
@@ -103,6 +106,11 @@ function startGame() {
     shockwaves = [];
     slashTrails = [];
     lastParryTime = 0;
+    perfectParryCombo = 0;
+    perfectParryComboTimer = 0;
+    
+    // 初始化音频
+    initAudio();
     
     gameLoop();
 }
@@ -468,8 +476,38 @@ function createSlashTrail(startX, startY, endX, endY) {
         startX, startY, endX, endY,
         alpha: 1,
         life: cfg.duration,
-        maxLife: cfg.duration
+        maxLife: cfg.duration,
+        enhanced: false
     });
+}
+
+// 创建强化刀光残留
+function createEnhancedSlashTrail(startX, startY, endX, endY, duration) {
+    const cfg = CONFIG.visual?.counterEffect?.trailPersistence;
+    if (!cfg || !cfg.enabled) return;
+    
+    const isEnhanced = comboCount >= (CONFIG.visual?.combo?.slashEnhancement?.threshold || 3);
+    
+    slashTrails.push({
+        startX, startY, endX, endY,
+        alpha: 1,
+        life: duration || cfg.duration,
+        maxLife: duration || cfg.duration,
+        enhanced: isEnhanced,
+        comboLevel: comboCount
+    });
+}
+
+// 获取强化后的残留时长
+function getEnhancedTrailDuration() {
+    const cfg = CONFIG.visual?.combo?.slashEnhancement;
+    const baseDuration = CONFIG.visual?.counterEffect?.trailPersistence?.duration || 300;
+    
+    if (!cfg || !cfg.enabled || comboCount < cfg.threshold) {
+        return baseDuration;
+    }
+    
+    return cfg.trailDuration || baseDuration;
 }
 
 // 更新刀光残留
@@ -496,21 +534,64 @@ function renderSlashTrails() {
     for (const trail of slashTrails) {
         const dx = trail.endX - trail.startX;
         const dy = trail.endY - trail.startY;
-        const angle = Math.atan2(dy, dx);
         
-        // 绘制淡化的刀光
         ctx.save();
-        ctx.globalAlpha = trail.alpha * 0.4;
         
-        // 单层简化刀光
-        ctx.strokeStyle = cfg.slashColor;
-        ctx.lineWidth = cfg.slashTrailWidth * 0.5;
-        ctx.lineCap = 'round';
-        
-        ctx.beginPath();
-        ctx.moveTo(trail.startX, trail.startY);
-        ctx.lineTo(trail.endX, trail.endY);
-        ctx.stroke();
+        // 强化效果
+        if (trail.enhanced) {
+            const enhanceCfg = CONFIG.visual?.combo?.slashEnhancement;
+            const widthMultiplier = enhanceCfg?.widthMultiplier || 1.5;
+            const glowIntensity = enhanceCfg?.glowIntensity || 1.5;
+            
+            // 多层刀光（强化版）
+            for (let layer = 2; layer >= 0; layer--) {
+                const alpha = trail.alpha * (0.5 - layer * 0.15);
+                const width = cfg.slashTrailWidth * widthMultiplier * (1 - layer * 0.3);
+                
+                ctx.globalAlpha = alpha;
+                
+                // 彩虹刀光（高连击）
+                let color;
+                if (trail.comboLevel >= 5 && CONFIG.visual?.perfectParryCombo?.specialEffects?.rainbowSlash) {
+                    const hue = (Date.now() / 10 + layer * 60) % 360;
+                    color = `hsl(${hue}, 100%, 60%)`;
+                } else if (layer === 0) {
+                    color = '#ffd700'; // 金色核心
+                } else if (layer === 1) {
+                    color = '#fff'; // 白色中层
+                } else {
+                    color = cfg.slashColor; // 青色外层
+                }
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.lineCap = 'round';
+                
+                // 发光效果
+                if (layer === 2) {
+                    ctx.shadowBlur = 15 * glowIntensity;
+                    ctx.shadowColor = color;
+                }
+                
+                ctx.beginPath();
+                ctx.moveTo(trail.startX, trail.startY);
+                ctx.lineTo(trail.endX, trail.endY);
+                ctx.stroke();
+                
+                ctx.shadowBlur = 0;
+            }
+        } else {
+            // 普通刀光残留
+            ctx.globalAlpha = trail.alpha * 0.4;
+            ctx.strokeStyle = cfg.slashColor;
+            ctx.lineWidth = cfg.slashTrailWidth * 0.5;
+            ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(trail.startX, trail.startY);
+            ctx.lineTo(trail.endX, trail.endY);
+            ctx.stroke();
+        }
         
         ctx.restore();
     }
@@ -550,8 +631,81 @@ function triggerPerfectParry() {
     // 额外能量恢复
     energy = Math.min(CONFIG.energy.max, energy + cfg.bonusEnergy);
     
+    // 完美格挡连击
+    updatePerfectParryCombo();
+    
     // 飘字提示
-    addFloatingText(player.x, player.y - 40, 'PERFECT!', cfg.flashColor, 32);
+    const comboText = perfectParryCombo > 1 ? `PERFECT x${perfectParryCombo}!` : 'PERFECT!';
+    addFloatingText(player.x, player.y - 40, comboText, cfg.flashColor, 32);
+    
+    // 音效
+    playSound('perfectParry');
+}
+
+// 更新完美格挡连击
+function updatePerfectParryCombo() {
+    const cfg = CONFIG.visual?.perfectParryCombo;
+    if (!cfg || !cfg.enabled) return;
+    
+    perfectParryCombo++;
+    perfectParryComboTimer = cfg.comboTimeout;
+    
+    // 连击奖励
+    if (perfectParryCombo > 1) {
+        const bonus = Math.min(perfectParryCombo, cfg.maxCombo) * cfg.bonusPerCombo;
+        energy = Math.min(CONFIG.energy.max, energy + bonus);
+        
+        // 特殊效果
+        if (cfg.specialEffects?.enabled && perfectParryCombo >= 3) {
+            // 更强的时间减速
+            const extraSlow = cfg.specialEffects.timeSlowBonus * (perfectParryCombo - 2);
+            triggerTimeScale(Math.max(0.05, CONFIG.visual.perfectParry.timeSlowScale - extraSlow), 
+                           CONFIG.visual.perfectParry.timeSlowDuration);
+            
+            // 爆炸效果
+            if (perfectParryCombo >= 5) {
+                createShockwave(player.x, player.y, cfg.specialEffects.explosionRadius, '#ff00ff');
+            }
+        }
+    }
+}
+
+// 音频系统
+function initAudio() {
+    if (!CONFIG.visual?.audio?.enabled) return;
+    
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+        console.warn('Web Audio API not supported:', e);
+    }
+}
+
+function playSound(soundType) {
+    if (!audioContext || !CONFIG.visual?.audio?.enabled) return;
+    
+    const soundCfg = CONFIG.visual.audio.sounds[soundType];
+    if (!soundCfg || !soundCfg.enabled) return;
+    
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = soundCfg.frequency;
+        oscillator.type = 'sine';
+        
+        const volume = CONFIG.visual.audio.volume;
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + soundCfg.duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + soundCfg.duration);
+    } catch (e) {
+        console.warn('Error playing sound:', e);
+    }
 }
 
 // 游戏循环
@@ -617,6 +771,14 @@ function update() {
         }
     }
     
+    // 更新完美格挡连击计时
+    if (perfectParryComboTimer > 0) {
+        perfectParryComboTimer -= 16;
+        if (perfectParryComboTimer <= 0) {
+            perfectParryCombo = 0;
+        }
+    }
+    
     // 更新UI
     updateUI();
 }
@@ -633,15 +795,44 @@ function updatePlayer() {
             // 击杀敌人
             const index = enemies.indexOf(player.counterTarget);
             if (index > -1) {
+                const enemy = enemies[index];
                 enemies.splice(index, 1);
                 kills++;
                 energy = Math.min(CONFIG.energy.max, energy + CONFIG.energy.killRestore);
                 
+                // 连击系统
+                comboCount++;
+                comboTimer = CONFIG.visual.combo.timeout;
+                
+                // 视觉效果
+                triggerScreenShake(CONFIG.visual.screenShake.counterHit);
+                triggerTimeScale(CONFIG.visual.timeScale.counterHit, CONFIG.visual.timeScale.duration);
+                triggerFlash(CONFIG.visual.flash.counterHit);
+                
                 createParticleBurst(player.x, player.y, CONFIG.effects.killBurstCount);
+                
+                // 死亡动画
+                createDeathAnimation(enemy);
+                
+                // 冲击波
+                createShockwave(player.x, player.y, 80, '#0ff');
+                
+                // 飘字
+                if (comboCount > 1) {
+                    const comboColor = CONFIG.visual.combo.colors[Math.min(comboCount - 1, CONFIG.visual.combo.colors.length - 1)];
+                    addFloatingText(player.x, player.y - 30, `${comboCount} COMBO!`, comboColor, 28);
+                } else {
+                    addFloatingText(player.x, player.y - 30, 'KILL!', '#fff', 24);
+                }
+                
+                // 音效
+                playSound('kill');
+                playSound('slash');
             }
             
-            // 创建刀光残留
-            createSlashTrail(player.counterStartX, player.counterStartY, player.x, player.y);
+            // 创建刀光残留（强化版）
+            const trailDuration = getEnhancedTrailDuration();
+            createEnhancedSlashTrail(player.counterStartX, player.counterStartY, player.x, player.y, trailDuration);
             
             player.counterAttacking = false;
             player.counterTarget = null;
@@ -932,6 +1123,9 @@ function updateBullets() {
                     triggerFlash(CONFIG.visual.flash.blockSuccess);
                     createParticleBurst(bullet.x, bullet.y, CONFIG.effects.blockBurstCount);
                     createShockwave(bullet.x, bullet.y, 50, '#0cf');
+                    
+                    // 音效
+                    playSound('parry');
                 }
                 
                 // 更新格挡时间
@@ -969,8 +1163,23 @@ function triggerCounter(meleeEnemy = null) {
         player.counterStartX = player.x;
         player.counterStartY = player.y;
         
-        createParticleBurst(player.x, player.y, CONFIG.counter.particleBurstCount);
+        // 连击强化粒子
+        const burstCount = getEnhancedParticleCount();
+        createParticleBurst(player.x, player.y, burstCount);
+        
+        // 音效
+        playSound('counter');
     }
+}
+
+// 获取强化后的粒子数量
+function getEnhancedParticleCount() {
+    const cfg = CONFIG.visual?.combo?.slashEnhancement;
+    if (!cfg || !cfg.enabled || comboCount < cfg.threshold) {
+        return CONFIG.counter.particleBurstCount;
+    }
+    
+    return Math.floor(CONFIG.counter.particleBurstCount * cfg.particleMultiplier);
 }
 
 // 更新粒子
@@ -1402,11 +1611,17 @@ function renderCounterEffect() {
     const distance = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx);
     
+    // 连击强化
+    const enhanceCfg = CONFIG.visual?.combo?.slashEnhancement;
+    const isEnhanced = enhanceCfg?.enabled && comboCount >= (enhanceCfg.threshold || 3);
+    const widthBonus = isEnhanced ? (enhanceCfg.widthMultiplier || 1.5) : 1;
+    const glowBonus = isEnhanced ? (enhanceCfg.glowIntensity || 1.5) : 1;
+    
     // 绘制刀光轨迹（多层）
     for (let layer = cfg.slashGlowLayers - 1; layer >= 0; layer--) {
         const widthMultiplier = 1 - layer * 0.3;
-        const width = cfg.slashTrailWidth * widthMultiplier;
-        const alpha = (0.6 - layer * 0.15) * (1 - player.counterProgress);
+        const width = cfg.slashTrailWidth * widthMultiplier * widthBonus;
+        const alpha = (0.6 - layer * 0.15) * (1 - player.counterProgress) * glowBonus;
         
         // 刀光颜色渐变：青→白→金
         let color;
