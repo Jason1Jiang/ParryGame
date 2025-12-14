@@ -1,45 +1,5 @@
 // 游戏配置
-const CONFIG = {
-    canvas: { width: 800, height: 600 },
-    player: {
-        radius: 15,
-        speed: 4,
-        color: '#fff'
-    },
-    energy: {
-        max: 100,
-        drainRate: 25, // 每秒消耗
-        regenRate: 25, // 每秒恢复
-        killRestore: 18
-    },
-    particles: {
-        count: 800,
-        baseSpeed: 0.3
-    },
-    enemies: {
-        ranged: {
-            size: 18,
-            speed: 1.5,
-            shootInterval: 1500,
-            color: '#f33'
-        },
-        melee: {
-            size: 12,
-            speed: 5,
-            attackRange: 70,
-            warningTime: 400,
-            attackTime: 150,
-            cooldownTime: 1200,
-            dashDistance: 90,
-            color: '#fa0'
-        }
-    },
-    bullet: {
-        radius: 4,
-        speed: 5,
-        color: '#f55'
-    }
-};
+let CONFIG = null;
 
 // 游戏状态
 let canvas, ctx;
@@ -50,10 +10,25 @@ let energy, kills, gameTime, startTime;
 let lastEnemySpawn = 0;
 let enemySpawnInterval = 2000;
 
+// 加载配置
+async function loadConfig() {
+    try {
+        const response = await fetch('config.json');
+        CONFIG = await response.json();
+        console.log('配置加载成功:', CONFIG);
+    } catch (error) {
+        console.error('配置加载失败:', error);
+        alert('无法加载游戏配置文件！');
+    }
+}
+
 // 初始化
-function init() {
+async function init() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
+    
+    // 加载配置
+    await loadConfig();
     
     // 键盘事件
     document.addEventListener('keydown', (e) => {
@@ -67,6 +42,11 @@ function init() {
 
 // 开始游戏
 function startGame() {
+    if (!CONFIG) {
+        alert('配置未加载，请刷新页面重试！');
+        return;
+    }
+    
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('ui').style.display = 'block';
     
@@ -76,6 +56,7 @@ function startGame() {
     gameTime = 0;
     startTime = Date.now();
     lastEnemySpawn = 0;
+    enemySpawnInterval = CONFIG.spawn.initialInterval;
     
     // 初始化玩家
     player = {
@@ -108,6 +89,7 @@ function restartGame() {
 
 // 创建粒子
 function createParticle() {
+    const colors = CONFIG.particles.colors;
     return {
         x: Math.random() * CONFIG.canvas.width,
         y: Math.random() * CONFIG.canvas.height,
@@ -115,7 +97,7 @@ function createParticle() {
         vy: (Math.random() - 0.5) * CONFIG.particles.baseSpeed,
         size: Math.random() * 2 + 0.5,
         alpha: Math.random() * 0.5 + 0.2,
-        color: Math.random() > 0.5 ? '#aaf' : '#faf'
+        color: colors[Math.floor(Math.random() * colors.length)]
     };
 }
 
@@ -132,24 +114,47 @@ function createEnemy(type) {
     }
     
     if (type === 'ranged') {
+        const cfg = CONFIG.enemies.ranged;
+        const shootInterval = cfg.shootInterval + (Math.random() - 0.5) * cfg.shootIntervalVariance;
+        const moveSpeed = cfg.speed * (cfg.speedVarianceMin + Math.random() * (cfg.speedVarianceMax - cfg.speedVarianceMin));
+        
         return {
             type: 'ranged',
             x, y,
-            size: CONFIG.enemies.ranged.size,
+            size: cfg.size,
             lastShot: Date.now(),
-            angle: 0
+            angle: 0,
+            shootInterval: shootInterval,
+            state: 'idle',
+            aimStartTime: 0,
+            movePattern: Math.random() * Math.PI * 2,
+            moveSpeed: moveSpeed,
+            keepDistance: cfg.keepDistance + (Math.random() - 0.5) * cfg.keepDistanceVariance
         };
     } else {
+        const cfg = CONFIG.enemies.melee;
+        const attackRange = cfg.attackRange + (Math.random() - 0.5) * cfg.attackRangeVariance;
+        const warningTime = cfg.warningTime + (Math.random() - 0.5) * cfg.warningTimeVariance;
+        const cooldownTime = cfg.cooldownTime + (Math.random() - 0.5) * cfg.cooldownVariance;
+        const dashDistance = cfg.dashDistance + (Math.random() - 0.5) * cfg.dashVariance;
+        const speed = cfg.speed + (Math.random() - 0.5) * cfg.speedVariance;
+        
         return {
             type: 'melee',
             x, y,
-            size: CONFIG.enemies.melee.size,
-            state: 'chase', // chase, warning, attack, cooldown
+            size: cfg.size,
+            state: 'chase',
             stateTime: 0,
             angle: 0,
             attackStartX: 0,
             attackStartY: 0,
-            warningScale: 1
+            warningScale: 1,
+            attackRange: attackRange,
+            warningTime: warningTime,
+            cooldownTime: cooldownTime,
+            dashDistance: dashDistance,
+            speed: speed,
+            zigzagOffset: Math.random() * Math.PI * 2
         };
     }
 }
@@ -176,10 +181,13 @@ function update() {
     
     // 生成敌人
     if (now - lastEnemySpawn > enemySpawnInterval) {
-        const type = (gameTime > 30 && Math.random() < 0.3) ? 'melee' : 'ranged';
+        const type = (gameTime > CONFIG.spawn.meleeStartTime && Math.random() < CONFIG.spawn.meleeSpawnChance) ? 'melee' : 'ranged';
         enemies.push(createEnemy(type));
         lastEnemySpawn = now;
-        enemySpawnInterval = Math.max(800, 2000 - gameTime * 20);
+        enemySpawnInterval = Math.max(
+            CONFIG.spawn.minInterval, 
+            CONFIG.spawn.initialInterval - gameTime * CONFIG.spawn.intervalDecreasePerSecond
+        );
     }
     
     // 更新敌人
@@ -199,7 +207,7 @@ function update() {
 function updatePlayer() {
     // 反击动画
     if (player.counterAttacking) {
-        player.counterProgress += 0.15;
+        player.counterProgress += CONFIG.counter.speed;
         if (player.counterProgress >= 1) {
             player.x = player.counterTarget.x;
             player.y = player.counterTarget.y;
@@ -211,8 +219,7 @@ function updatePlayer() {
                 kills++;
                 energy = Math.min(CONFIG.energy.max, energy + CONFIG.energy.killRestore);
                 
-                // 粒子爆发
-                createParticleBurst(player.x, player.y, 30);
+                createParticleBurst(player.x, player.y, CONFIG.effects.killBurstCount);
             }
             
             player.counterAttacking = false;
@@ -227,8 +234,7 @@ function updatePlayer() {
             player.x = startX + (targetX - startX) * player.counterProgress;
             player.y = startY + (targetY - startY) * player.counterProgress;
             
-            // 粒子扰动
-            disturbParticles(player.x, player.y, 50, 8);
+            disturbParticles(player.x, player.y, CONFIG.effects.counterDisturbRadius, CONFIG.effects.counterDisturbForce);
         }
         return;
     }
@@ -251,8 +257,7 @@ function updatePlayer() {
         player.x = Math.max(player.radius, Math.min(CONFIG.canvas.width - player.radius, player.x));
         player.y = Math.max(player.radius, Math.min(CONFIG.canvas.height - player.radius, player.y));
         
-        // 轻微粒子扰动
-        disturbParticles(player.x, player.y, 30, 2);
+        disturbParticles(player.x, player.y, CONFIG.effects.movementDisturbRadius, CONFIG.effects.movementDisturbForce);
     }
     
     // 格挡
@@ -292,33 +297,67 @@ function updateEnemies() {
 
 // 更新远程敌人
 function updateRangedEnemy(enemy, now) {
-    // 计算角度
+    const cfg = CONFIG.enemies.ranged;
     const dx = player.x - enemy.x;
     const dy = player.y - enemy.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
     enemy.angle = Math.atan2(dy, dx);
     
-    // 缓慢移动
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist > 200) {
-        enemy.x += Math.cos(enemy.angle) * CONFIG.enemies.ranged.speed;
-        enemy.y += Math.sin(enemy.angle) * CONFIG.enemies.ranged.speed;
-    }
-    
-    // 射击
-    if (now - enemy.lastShot > CONFIG.enemies.ranged.shootInterval) {
-        bullets.push({
-            x: enemy.x,
-            y: enemy.y,
-            vx: Math.cos(enemy.angle) * CONFIG.bullet.speed,
-            vy: Math.sin(enemy.angle) * CONFIG.bullet.speed,
-            radius: CONFIG.bullet.radius
-        });
-        enemy.lastShot = now;
+    switch(enemy.state) {
+        case 'idle':
+            enemy.movePattern += 0.02;
+            const targetDist = enemy.keepDistance + Math.sin(enemy.movePattern) * 50;
+            
+            if (dist > targetDist + 30) {
+                enemy.x += Math.cos(enemy.angle) * enemy.moveSpeed;
+                enemy.y += Math.sin(enemy.angle) * enemy.moveSpeed;
+            } else if (dist < targetDist - 30) {
+                enemy.x -= Math.cos(enemy.angle) * enemy.moveSpeed * 0.7;
+                enemy.y -= Math.sin(enemy.angle) * enemy.moveSpeed * 0.7;
+            } else {
+                const perpAngle = enemy.angle + Math.PI / 2;
+                enemy.x += Math.cos(perpAngle) * enemy.moveSpeed * 0.8;
+                enemy.y += Math.sin(perpAngle) * enemy.moveSpeed * 0.8;
+            }
+            
+            if (now - enemy.lastShot > enemy.shootInterval) {
+                enemy.state = 'aiming';
+                enemy.aimStartTime = now;
+                enemy.aimAngle = enemy.angle;
+            }
+            break;
+            
+        case 'aiming':
+            const aimElapsed = now - enemy.aimStartTime;
+            
+            if (aimElapsed > cfg.aimTime) {
+                bullets.push({
+                    x: enemy.x,
+                    y: enemy.y,
+                    vx: Math.cos(enemy.aimAngle) * CONFIG.bullet.speed,
+                    vy: Math.sin(enemy.aimAngle) * CONFIG.bullet.speed,
+                    radius: CONFIG.bullet.radius
+                });
+                enemy.lastShot = now;
+                enemy.state = 'cooldown';
+                enemy.cooldownStart = now;
+            }
+            break;
+            
+        case 'cooldown':
+            enemy.x -= Math.cos(enemy.angle) * enemy.moveSpeed * 0.5;
+            enemy.y -= Math.sin(enemy.angle) * enemy.moveSpeed * 0.5;
+            
+            if (now - enemy.cooldownStart > cfg.cooldownTime) {
+                enemy.state = 'idle';
+            }
+            break;
     }
 }
 
 // 更新近战敌人
 function updateMeleeEnemy(enemy, now) {
+    const cfg = CONFIG.enemies.melee;
     const dx = player.x - enemy.x;
     const dy = player.y - enemy.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -326,24 +365,40 @@ function updateMeleeEnemy(enemy, now) {
     
     switch(enemy.state) {
         case 'chase':
-            // 追击玩家
-            enemy.x += Math.cos(enemy.angle) * CONFIG.enemies.melee.speed;
-            enemy.y += Math.sin(enemy.angle) * CONFIG.enemies.melee.speed;
+            enemy.zigzagOffset += 0.1;
+            const zigzagAngle = enemy.angle + Math.sin(enemy.zigzagOffset) * cfg.zigzagIntensity;
             
-            // 进入攻击范围
-            if (dist < CONFIG.enemies.melee.attackRange) {
+            enemy.x += Math.cos(zigzagAngle) * enemy.speed;
+            enemy.y += Math.sin(zigzagAngle) * enemy.speed;
+            
+            if (dist < enemy.attackRange) {
                 enemy.state = 'warning';
                 enemy.stateTime = now;
                 enemy.warningScale = 1;
+                
+                const predictTime = cfg.predictTime;
+                let predictX = player.x;
+                let predictY = player.y;
+                if (keys['w']) predictY -= CONFIG.player.speed * predictTime * 60;
+                if (keys['s']) predictY += CONFIG.player.speed * predictTime * 60;
+                if (keys['a']) predictX -= CONFIG.player.speed * predictTime * 60;
+                if (keys['d']) predictX += CONFIG.player.speed * predictTime * 60;
+                
+                const pdx = predictX - enemy.x;
+                const pdy = predictY - enemy.y;
+                enemy.attackAngle = Math.atan2(pdy, pdx);
             }
             break;
             
         case 'warning':
-            // 警告阶段
             const warningElapsed = now - enemy.stateTime;
             enemy.warningScale = 1 + Math.sin(warningElapsed / 50) * 0.3;
             
-            if (warningElapsed > CONFIG.enemies.melee.warningTime) {
+            const shake = Math.sin(warningElapsed / 30) * 2;
+            enemy.x += Math.cos(enemy.attackAngle + Math.PI / 2) * shake * 0.1;
+            enemy.y += Math.sin(enemy.attackAngle + Math.PI / 2) * shake * 0.1;
+            
+            if (warningElapsed > enemy.warningTime) {
                 enemy.state = 'attack';
                 enemy.stateTime = now;
                 enemy.attackStartX = enemy.x;
@@ -352,40 +407,38 @@ function updateMeleeEnemy(enemy, now) {
             break;
             
         case 'attack':
-            // 攻击阶段
             const attackElapsed = now - enemy.stateTime;
-            const attackProgress = Math.min(1, attackElapsed / CONFIG.enemies.melee.attackTime);
+            const attackProgress = Math.min(1, attackElapsed / cfg.attackTime);
             
-            enemy.x = enemy.attackStartX + Math.cos(enemy.angle) * CONFIG.enemies.melee.dashDistance * attackProgress;
-            enemy.y = enemy.attackStartY + Math.sin(enemy.angle) * CONFIG.enemies.melee.dashDistance * attackProgress;
+            enemy.x = enemy.attackStartX + Math.cos(enemy.attackAngle) * enemy.dashDistance * attackProgress;
+            enemy.y = enemy.attackStartY + Math.sin(enemy.attackAngle) * enemy.dashDistance * attackProgress;
             
-            // 粒子扰动
-            disturbParticles(enemy.x, enemy.y, 40, 5);
+            disturbParticles(enemy.x, enemy.y, CONFIG.effects.dashDisturbRadius, CONFIG.effects.dashDisturbForce);
             
-            // 检测碰撞
             if (checkMeleeHit(enemy)) {
                 if (player.blocking && !player.counterAttacking) {
-                    // 格挡成功，触发反击
                     triggerCounter(enemy);
                     enemy.state = 'cooldown';
                     enemy.stateTime = now;
                 } else if (!player.counterAttacking) {
-                    // 玩家被击中
                     gameOver();
                     return;
                 }
             }
             
-            if (attackElapsed > CONFIG.enemies.melee.attackTime) {
+            if (attackElapsed > cfg.attackTime) {
                 enemy.state = 'cooldown';
                 enemy.stateTime = now;
             }
             break;
             
         case 'cooldown':
-            // 冷却阶段
-            if (now - enemy.stateTime > CONFIG.enemies.melee.cooldownTime) {
+            enemy.x -= Math.cos(enemy.attackAngle) * 1;
+            enemy.y -= Math.sin(enemy.attackAngle) * 1;
+            
+            if (now - enemy.stateTime > enemy.cooldownTime) {
                 enemy.state = 'chase';
+                enemy.zigzagOffset = Math.random() * Math.PI * 2;
             }
             break;
     }
@@ -422,7 +475,7 @@ function updateBullets() {
             if (player.blocking && !player.counterAttacking) {
                 // 格挡成功
                 bullets.splice(i, 1);
-                createParticleBurst(bullet.x, bullet.y, 15);
+                createParticleBurst(bullet.x, bullet.y, CONFIG.effects.blockBurstCount);
                 triggerCounter();
             } else if (!player.counterAttacking) {
                 // 玩家被击中
@@ -455,8 +508,7 @@ function triggerCounter(meleeEnemy = null) {
         player.counterStartX = player.x;
         player.counterStartY = player.y;
         
-        // 粒子爆发
-        createParticleBurst(player.x, player.y, 25);
+        createParticleBurst(player.x, player.y, CONFIG.counter.particleBurstCount);
     }
 }
 
@@ -502,18 +554,19 @@ function disturbParticles(x, y, radius, force) {
 
 // 粒子爆发
 function createParticleBurst(x, y, count) {
+    const cfg = CONFIG.counter;
     for (let i = 0; i < count; i++) {
         const angle = (Math.PI * 2 * i) / count;
-        const speed = 5 + Math.random() * 3;
+        const speed = cfg.particleBurstForce + Math.random() * cfg.particleBurstForceVariance;
         
         for (const p of particles) {
             const dx = p.x - x;
             const dy = p.y - y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist < 100) {
-                p.vx += Math.cos(angle) * speed * (1 - dist / 100);
-                p.vy += Math.sin(angle) * speed * (1 - dist / 100);
+            if (dist < cfg.particleBurstRadius) {
+                p.vx += Math.cos(angle) * speed * (1 - dist / cfg.particleBurstRadius);
+                p.vy += Math.sin(angle) * speed * (1 - dist / cfg.particleBurstRadius);
             }
         }
     }
@@ -581,22 +634,20 @@ function renderParticles() {
 
 // 渲染玩家
 function renderPlayer() {
-    // 格挡光环
     if (player.blocking) {
-        ctx.strokeStyle = '#0cf';
+        ctx.strokeStyle = CONFIG.player.blockingRingColor;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(player.x, player.y, player.radius + 8, 0, Math.PI * 2);
         ctx.stroke();
         
-        ctx.strokeStyle = '#0af';
+        ctx.strokeStyle = CONFIG.player.blockingRingColor2;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(player.x, player.y, player.radius + 12, 0, Math.PI * 2);
         ctx.stroke();
     }
     
-    // 玩家本体
     ctx.fillStyle = CONFIG.player.color;
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
@@ -616,11 +667,33 @@ function renderEnemies() {
 
 // 渲染远程敌人
 function renderRangedEnemy(enemy) {
+    const cfg = CONFIG.enemies.ranged;
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
+    
+    if (enemy.state === 'aiming') {
+        const aimProgress = (Date.now() - enemy.aimStartTime) / cfg.aimTime;
+        
+        ctx.strokeStyle = cfg.warningLineColor.replace('0.6', (aimProgress * 0.6).toString());
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(enemy.aimAngle) * 1000, Math.sin(enemy.aimAngle) * 1000);
+        ctx.stroke();
+        
+        ctx.strokeStyle = cfg.warningRingColor.replace('1)', aimProgress + ')');
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, enemy.size * (1 + aimProgress * 0.5), 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.fillStyle = Math.floor(Date.now() / 100) % 2 === 0 ? cfg.aimColor : cfg.color;
+    } else {
+        ctx.fillStyle = cfg.color;
+    }
+    
     ctx.rotate(enemy.angle + Math.PI / 2);
     
-    ctx.fillStyle = CONFIG.enemies.ranged.color;
     ctx.beginPath();
     ctx.moveTo(0, -enemy.size);
     ctx.lineTo(enemy.size * 0.866, enemy.size * 0.5);
@@ -633,29 +706,43 @@ function renderRangedEnemy(enemy) {
 
 // 渲染近战敌人
 function renderMeleeEnemy(enemy) {
+    const cfg = CONFIG.enemies.melee;
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
     
-    // 警告光圈
     if (enemy.state === 'warning') {
-        const progress = (Date.now() - enemy.stateTime) / CONFIG.enemies.melee.warningTime;
-        ctx.strokeStyle = `rgba(255, 50, 50, ${1 - progress})`;
+        const progress = (Date.now() - enemy.stateTime) / enemy.warningTime;
+        
+        ctx.strokeStyle = cfg.warningRingColor.replace('1)', (1 - progress) + ')');
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(0, 0, enemy.size * 2 * (1 + progress), 0, Math.PI * 2);
+        ctx.arc(0, 0, enemy.size * 2 * (1 + progress * 2), 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.strokeStyle = cfg.warningRing2Color.replace('0.8)', (0.8 - progress * 0.5) + ')');
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, enemy.size * 1.5 * (1 + Math.sin(progress * Math.PI * 4) * 0.3), 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.strokeStyle = cfg.directionLineColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(enemy.attackAngle) * enemy.dashDistance * 0.8, 
+                   Math.sin(enemy.attackAngle) * enemy.dashDistance * 0.8);
         ctx.stroke();
     }
     
-    // 攻击残影
     if (enemy.state === 'attack') {
-        const progress = (Date.now() - enemy.stateTime) / CONFIG.enemies.melee.attackTime;
+        const progress = (Date.now() - enemy.stateTime) / cfg.attackTime;
         for (let i = 0; i < 3; i++) {
             const trailProgress = Math.max(0, progress - i * 0.15);
             if (trailProgress > 0) {
-                const trailX = enemy.attackStartX + Math.cos(enemy.angle) * CONFIG.enemies.melee.dashDistance * trailProgress - enemy.x;
-                const trailY = enemy.attackStartY + Math.sin(enemy.angle) * CONFIG.enemies.melee.dashDistance * trailProgress - enemy.y;
+                const trailX = enemy.attackStartX + Math.cos(enemy.attackAngle) * enemy.dashDistance * trailProgress - enemy.x;
+                const trailY = enemy.attackStartY + Math.sin(enemy.attackAngle) * enemy.dashDistance * trailProgress - enemy.y;
                 
-                ctx.fillStyle = `rgba(255, 170, 0, ${0.3 * (1 - i * 0.3)})`;
+                ctx.fillStyle = cfg.trailColor.replace('0.3)', (0.3 * (1 - i * 0.3)) + ')');
                 ctx.beginPath();
                 ctx.moveTo(trailX, trailY - enemy.size);
                 ctx.lineTo(trailX + enemy.size, trailY);
@@ -667,10 +754,9 @@ function renderMeleeEnemy(enemy) {
         }
     }
     
-    // 敌人本体
     const size = enemy.size * (enemy.state === 'warning' ? enemy.warningScale : 1);
     const flash = enemy.state === 'warning' && Math.floor(Date.now() / 100) % 2 === 0;
-    ctx.fillStyle = flash ? '#fff' : CONFIG.enemies.melee.color;
+    ctx.fillStyle = flash ? cfg.warningColor : cfg.color;
     
     ctx.beginPath();
     ctx.moveTo(0, -size);
@@ -695,22 +781,19 @@ function renderBullets() {
 
 // 渲染反击效果
 function renderCounterEffect() {
+    const cfg = CONFIG.counter;
     const startX = player.counterStartX;
     const startY = player.counterStartY;
-    const endX = player.counterTarget.x;
-    const endY = player.counterTarget.y;
     
-    // 轨迹线
-    ctx.strokeStyle = `rgba(0, 200, 255, ${1 - player.counterProgress})`;
+    ctx.strokeStyle = cfg.trailColor.replace('1)', (1 - player.counterProgress) + ')');
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.lineTo(player.x, player.y);
     ctx.stroke();
     
-    // 斩击光效
-    if (player.counterProgress > 0.7) {
-        ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - player.counterProgress) * 3})`;
+    if (player.counterProgress > cfg.slashThreshold) {
+        ctx.strokeStyle = cfg.slashColor.replace('1)', ((1 - player.counterProgress) * 3) + ')');
         ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.moveTo(player.x - 20, player.y - 20);
@@ -724,4 +807,4 @@ function renderCounterEffect() {
 }
 
 // 启动
-init();
+window.addEventListener('load', init);

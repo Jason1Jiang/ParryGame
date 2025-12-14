@@ -1,0 +1,98 @@
+{
+  "canvas": {
+    "width": 800,
+    "height": 600
+  },
+  "player": {
+    "radius": 15,
+    "speed": 4,
+    "color": "#fff",
+    "blockingRingColor": "#0cf",
+    "blockingRingColor2": "#0af"
+  },
+  "energy": {
+    "max": 100,
+    "drainRate": 25,
+    "regenRate": 25,
+    "killRestore": 18
+  },
+  "particles": {
+    "count": 800,
+    "baseSpeed": 0.3,
+    "colors": ["#aaf", "#faf"]
+  },
+  "enemies": {
+    "ranged": {
+      "size": 18,
+      "speed": 1.5,
+      "speedVarianceMin": 0.7,
+      "speedVarianceMax": 1.3,
+      "shootInterval": 1500,
+      "shootIntervalVariance": 500,
+      "aimTime": 600,
+      "cooldownTime": 300,
+      "keepDistance": 250,
+      "keepDistanceVariance": 50,
+      "color": "#f33",
+      "aimColor": "#faa",
+      "warningLineColor": "rgba(255, 100, 100, 0.6)",
+      "warningRingColor": "rgba(255, 50, 50, 1)"
+    },
+    "melee": {
+      "size": 12,
+      "speed": 5,
+      "speedVariance": 1.5,
+      "attackRange": 150,
+      "attackRangeVariance": 40,
+      "warningTime": 400,
+      "warningTimeVariance": 150,
+      "attackTime": 150,
+      "cooldownTime": 1200,
+      "cooldownVariance": 400,
+      "dashDistance": 120,
+      "dashVariance": 30,
+      "zigzagIntensity": 0.4,
+      "predictTime": 0.3,
+      "color": "#fa0",
+      "warningColor": "#fff",
+      "warningRingColor": "rgba(255, 50, 50, 1)",
+      "warningRing2Color": "rgba(255, 100, 50, 0.8)",
+      "directionLineColor": "rgba(255, 150, 50, 0.6)",
+      "trailColor": "rgba(255, 170, 0, 0.3)"
+    }
+  },
+  "bullet": {
+    "radius": 4,
+    "speed": 5,
+    "color": "#f55"
+  },
+  "spawn": {
+    "initialInterval": 2000,
+    "minInterval": 800,
+    "intervalDecreasePerSecond": 20,
+    "meleeStartTime": 30,
+    "meleeSpawnChance": 0.3
+  },
+  "counter": {
+    "speed": 0.15,
+    "trailColor": "rgba(0, 200, 255, 1)",
+    "slashColor": "rgba(255, 255, 255, 1)",
+    "slashThreshold": 0.7,
+    "particleBurstCount": 25,
+    "particleBurstRadius": 100,
+    "particleBurstForce": 5,
+    "particleBurstForceVariance": 3
+  },
+  "effects": {
+    "blockBurstCount": 15,
+    "blockBurstRadius": 100,
+    "killBurstCount": 30,
+    "killBurstRadius": 100,
+    "movementDisturbRadius": 30,
+    "movementDisturbForce": 2,
+    "dashDisturbRadius": 40,
+    "dashDisturbForce": 5,
+    "counterDisturbRadius": 50,
+    "counterDisturbForce": 8
+  }
+}
