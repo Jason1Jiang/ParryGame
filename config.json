@@ -17,9 +17,13 @@
     "killRestore": 18
   },
   "particles": {
-    "count": 800,
-    "baseSpeed": 0.3,
-    "colors": ["#aaf", "#faf"]
+    "count": 300,
+    "baseSpeed": 0.2,
+    "colors": ["#4488ff", "#8844ff"],
+    "minAlpha": 0.1,
+    "maxAlpha": 0.3,
+    "minSize": 0.5,
+    "maxSize": 1.5
   },
   "enemies": {
     "ranged": {
@@ -94,5 +98,75 @@
     "dashDisturbForce": 5,
     "counterDisturbRadius": 50,
     "counterDisturbForce": 8
+  },
+  "visual": {
+    "screenShake": {
+      "enabled": true,
+      "blockSuccess": 8,
+      "counterHit": 15,
+      "enemyDeath": 5,
+      "duration": 200
+    },
+    "timeScale": {
+      "enabled": true,
+      "blockSuccess": 0.3,
+      "counterStart": 0.5,
+      "counterHit": 0.1,
+      "duration": 150
+    },
+    "flash": {
+      "enabled": true,
+      "blockSuccess": 0.8,
+      "counterHit": 1.0,
+      "duration": 100,
+      "radius": 50
+    },
+    "blockingShield": {
+      "layers": 3,
+      "rotationSpeed": 2,
+      "pulseSpeed": 3,
+      "particleCount": 20
+    },
+    "counterEffect": {
+      "chargeTime": 100,
+      "slashTrailWidth": 30,
+      "slashTrailSegments": 20,
+      "slashGlowLayers": 3,
+      "lightningSegments": 5,
+      "freezeDuration": 150,
+      "slashSize": 40,
+      "slashColor": "#0ff",
+      "slashGlowColor": "#fff"
+    },
+    "enemyDeath": {
+      "explosionParticles": 40,
+      "explosionSpeed": 8,
+      "shrinkDuration": 200,
+      "fadeOutDuration": 300
+    },
+    "combo": {
+      "enabled": true,
+      "timeout": 3000,
+      "colors": ["#fff", "#ff0", "#f80", "#f0f", "#0ff"]
+    },
+    "background": {
+      "gradient": false,
+      "backgroundColor": "#000000",
+      "gradientColors": ["#000428", "#004e92", "#000000"],
+      "vignette": false,
+      "vignetteStrength": 0.2
+    },
+    "glow": {
+      "enabled": true,
+      "playerGlow": 15,
+      "enemyGlow": 8,
+      "bulletGlow": 5
+    },
+    "clarity": {
+      "enabled": true,
+      "particleReduction": true,
+      "enhancedContrast": true,
+      "cleanBackground": true
+    }
   }
 }

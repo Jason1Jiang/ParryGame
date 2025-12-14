@@ -10,6 +10,17 @@ let energy, kills, gameTime, startTime;
 let lastEnemySpawn = 0;
 let enemySpawnInterval = 2000;
 
+// 视觉效果状态
+let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
+let timeScale = 1;
+let timeScaleTarget = 1;
+let flashAlpha = 0;
+let comboCount = 0;
+let comboTimer = 0;
+let deathAnimations = [];
+let floatingTexts = [];
+let shockwaves = [];
+
 // 加载配置
 async function loadConfig() {
     try {
@@ -78,6 +89,17 @@ function startGame() {
     enemies = [];
     bullets = [];
     
+    // 重置视觉效果
+    screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
+    timeScale = 1;
+    timeScaleTarget = 1;
+    flashAlpha = 0;
+    comboCount = 0;
+    comboTimer = 0;
+    deathAnimations = [];
+    floatingTexts = [];
+    shockwaves = [];
+    
     gameLoop();
 }
 
@@ -89,14 +111,20 @@ function restartGame() {
 
 // 创建粒子
 function createParticle() {
-    const colors = CONFIG.particles.colors;
+    const cfg = CONFIG.particles;
+    const colors = cfg.colors;
+    const minAlpha = cfg.minAlpha || 0.1;
+    const maxAlpha = cfg.maxAlpha || 0.3;
+    const minSize = cfg.minSize || 0.5;
+    const maxSize = cfg.maxSize || 1.5;
+    
     return {
         x: Math.random() * CONFIG.canvas.width,
         y: Math.random() * CONFIG.canvas.height,
-        vx: (Math.random() - 0.5) * CONFIG.particles.baseSpeed,
-        vy: (Math.random() - 0.5) * CONFIG.particles.baseSpeed,
-        size: Math.random() * 2 + 0.5,
-        alpha: Math.random() * 0.5 + 0.2,
+        vx: (Math.random() - 0.5) * cfg.baseSpeed,
+        vy: (Math.random() - 0.5) * cfg.baseSpeed,
+        size: Math.random() * (maxSize - minSize) + minSize,
+        alpha: Math.random() * (maxAlpha - minAlpha) + minAlpha,
         color: colors[Math.floor(Math.random() * colors.length)]
     };
 }
@@ -159,6 +187,274 @@ function createEnemy(type) {
     }
 }
 
+// 视觉效果辅助函数
+function updateVisualEffects() {
+    // 屏幕震动
+    if (screenShake.duration > 0) {
+        screenShake.duration -= 16;
+        const progress = screenShake.duration / (CONFIG.visual?.screenShake?.duration || 200);
+        screenShake.x = (Math.random() - 0.5) * screenShake.intensity * progress;
+        screenShake.y = (Math.random() - 0.5) * screenShake.intensity * progress;
+    } else {
+        screenShake.x = 0;
+        screenShake.y = 0;
+    }
+    
+    // 时间缩放平滑过渡
+    timeScale += (timeScaleTarget - timeScale) * 0.1;
+    if (Math.abs(timeScale - timeScaleTarget) < 0.01) {
+        timeScale = timeScaleTarget;
+    }
+    
+    // 闪光淡出
+    if (flashAlpha > 0) {
+        flashAlpha -= 0.05;
+        if (flashAlpha < 0) flashAlpha = 0;
+    }
+}
+
+function triggerScreenShake(intensity) {
+    if (!CONFIG.visual?.screenShake?.enabled) return;
+    screenShake.intensity = intensity;
+    screenShake.duration = CONFIG.visual.screenShake.duration;
+}
+
+function triggerTimeScale(scale, duration) {
+    if (!CONFIG.visual?.timeScale?.enabled) return;
+    timeScaleTarget = scale;
+    setTimeout(() => {
+        timeScaleTarget = 1;
+    }, duration);
+}
+
+function triggerFlash(intensity) {
+    if (!CONFIG.visual?.flash?.enabled) return;
+    flashAlpha = Math.min(1, intensity);
+}
+
+function addFloatingText(x, y, text, color = '#fff', size = 24) {
+    floatingTexts.push({
+        x, y, text, color, size,
+        alpha: 1,
+        vy: -2,
+        life: 60
+    });
+}
+
+function updateFloatingTexts() {
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const text = floatingTexts[i];
+        text.y += text.vy;
+        text.vy *= 0.95;
+        text.alpha -= 1 / text.life;
+        text.life--;
+        
+        if (text.life <= 0) {
+            floatingTexts.splice(i, 1);
+        }
+    }
+}
+
+function createShockwave(x, y, maxRadius, color) {
+    shockwaves.push({
+        x, y, radius: 0, maxRadius, color,
+        alpha: 1, life: 30
+    });
+}
+
+function updateShockwaves() {
+    for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const wave = shockwaves[i];
+        wave.life--;
+        wave.radius += (wave.maxRadius - wave.radius) * 0.2;
+        wave.alpha = wave.life / 30;
+        
+        if (wave.life <= 0) {
+            shockwaves.splice(i, 1);
+        }
+    }
+}
+
+function renderShockwaves() {
+    for (const wave of shockwaves) {
+        ctx.strokeStyle = wave.color;
+        ctx.globalAlpha = wave.alpha;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(wave.x, wave.y, wave.radius * 0.8, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+}
+
+function createDeathAnimation(enemy) {
+    const cfg = CONFIG.visual?.enemyDeath || {
+        explosionParticles: 40,
+        explosionSpeed: 8,
+        shrinkDuration: 200,
+        fadeOutDuration: 300
+    };
+    
+    deathAnimations.push({
+        x: enemy.x,
+        y: enemy.y,
+        size: enemy.size,
+        type: enemy.type,
+        rotation: 0,
+        scale: 1,
+        alpha: 1,
+        particles: [],
+        life: cfg.shrinkDuration + cfg.fadeOutDuration
+    });
+    
+    // 创建爆炸粒子
+    const lastAnim = deathAnimations[deathAnimations.length - 1];
+    for (let i = 0; i < cfg.explosionParticles; i++) {
+        const angle = (Math.PI * 2 * i) / cfg.explosionParticles + Math.random() * 0.5;
+        const speed = cfg.explosionSpeed + Math.random() * 3;
+        lastAnim.particles.push({
+            x: enemy.x,
+            y: enemy.y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: Math.random() * 3 + 1,
+            color: enemy.type === 'ranged' ? '#f55' : '#fa0',
+            alpha: 1
+        });
+    }
+}
+
+function updateDeathAnimations() {
+    const cfg = CONFIG.visual?.enemyDeath || {
+        shrinkDuration: 200,
+        fadeOutDuration: 300
+    };
+    
+    for (let i = deathAnimations.length - 1; i >= 0; i--) {
+        const anim = deathAnimations[i];
+        anim.life--;
+        
+        const totalLife = cfg.shrinkDuration + cfg.fadeOutDuration;
+        const progress = 1 - anim.life / totalLife;
+        
+        anim.rotation += 0.2;
+        if (anim.life > cfg.fadeOutDuration) {
+            anim.scale = 1 - (progress * 2);
+        } else {
+            anim.alpha = anim.life / cfg.fadeOutDuration;
+        }
+        
+        for (const p of anim.particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.95;
+            p.vy *= 0.95;
+            p.alpha = anim.alpha;
+        }
+        
+        if (anim.life <= 0) {
+            deathAnimations.splice(i, 1);
+        }
+    }
+}
+
+function renderDeathAnimations() {
+    for (const anim of deathAnimations) {
+        // 渲染爆炸粒子
+        for (const p of anim.particles) {
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.alpha;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // 渲染敌人本体
+        ctx.save();
+        ctx.translate(anim.x, anim.y);
+        ctx.rotate(anim.rotation);
+        ctx.scale(anim.scale, anim.scale);
+        ctx.globalAlpha = anim.alpha;
+        
+        if (anim.type === 'ranged') {
+            ctx.fillStyle = CONFIG.enemies.ranged.color;
+            ctx.beginPath();
+            ctx.moveTo(0, -anim.size);
+            ctx.lineTo(anim.size * 0.866, anim.size * 0.5);
+            ctx.lineTo(-anim.size * 0.866, anim.size * 0.5);
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            ctx.fillStyle = CONFIG.enemies.melee.color;
+            ctx.beginPath();
+            ctx.moveTo(0, -anim.size);
+            ctx.lineTo(anim.size, 0);
+            ctx.lineTo(0, anim.size);
+            ctx.lineTo(-anim.size, 0);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+}
+
+function renderFloatingTexts() {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    for (const text of floatingTexts) {
+        ctx.font = `bold ${text.size}px Arial`;
+        ctx.globalAlpha = text.alpha;
+        
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 4;
+        ctx.strokeText(text.text, text.x, text.y);
+        
+        ctx.fillStyle = text.color;
+        ctx.fillText(text.text, text.x, text.y);
+    }
+    
+    ctx.restore();
+    ctx.globalAlpha = 1;
+}
+
+function renderCombo() {
+    if (comboCount > 1 && comboTimer > 0 && CONFIG.visual?.combo) {
+        const x = CONFIG.canvas.width / 2;
+        const y = 80;
+        const progress = comboTimer / CONFIG.visual.combo.timeout;
+        const scale = 1 + (1 - progress) * 0.3;
+        
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 36px Arial';
+        ctx.globalAlpha = Math.min(1, progress * 2);
+        
+        const comboColor = CONFIG.visual.combo.colors[Math.min(comboCount - 1, CONFIG.visual.combo.colors.length - 1)];
+        
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 5;
+        ctx.strokeText(`${comboCount}x COMBO`, 0, 0);
+        
+        ctx.fillStyle = comboColor;
+        ctx.fillText(`${comboCount}x COMBO`, 0, 0);
+        
+        ctx.restore();
+        ctx.globalAlpha = 1;
+    }
+}
+
 // 游戏循环
 function gameLoop() {
     if (gameState !== 'playing') return;
@@ -172,6 +468,9 @@ function gameLoop() {
 function update() {
     const now = Date.now();
     gameTime = Math.floor((now - startTime) / 1000);
+    
+    // 更新视觉效果
+    updateVisualEffects();
     
     // 更新玩家
     updatePlayer();
@@ -198,6 +497,23 @@ function update() {
     
     // 更新粒子
     updateParticles();
+    
+    // 更新死亡动画
+    updateDeathAnimations();
+    
+    // 更新飘字
+    updateFloatingTexts();
+    
+    // 更新冲击波
+    updateShockwaves();
+    
+    // 更新连击计时
+    if (comboTimer > 0) {
+        comboTimer -= 16;
+        if (comboTimer <= 0) {
+            comboCount = 0;
+        }
+    }
     
     // 更新UI
     updateUI();
@@ -600,12 +916,28 @@ function gameOver() {
 
 // 渲染
 function render() {
-    // 清空画布
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
+    ctx.save();
+    
+    // 应用屏幕震动
+    if (screenShake && screenShake.x !== undefined) {
+        ctx.translate(screenShake.x, screenShake.y);
+    }
+    
+    // 渲染背景
+    renderBackground();
     
     // 渲染粒子
     renderParticles();
+    
+    // 渲染冲击波
+    if (typeof renderShockwaves === 'function') {
+        renderShockwaves();
+    }
+    
+    // 渲染死亡动画
+    if (typeof renderDeathAnimations === 'function') {
+        renderDeathAnimations();
+    }
     
     // 渲染子弹
     renderBullets();
@@ -620,6 +952,56 @@ function render() {
     if (player.counterAttacking) {
         renderCounterEffect();
     }
+    
+    ctx.restore();
+    
+    // 渲染飘字（不受震动影响）
+    if (typeof renderFloatingTexts === 'function') {
+        renderFloatingTexts();
+    }
+    
+    // 渲染连击显示
+    if (typeof renderCombo === 'function') {
+        renderCombo();
+    }
+    
+    // 渲染暗角
+    if (CONFIG.visual && CONFIG.visual.background && CONFIG.visual.background.vignette) {
+        renderVignette();
+    }
+}
+
+// 渲染背景
+function renderBackground() {
+    const bg = CONFIG.visual?.background;
+    
+    if (bg && bg.gradient) {
+        const gradient = ctx.createRadialGradient(
+            CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, 0,
+            CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, CONFIG.canvas.width / 2
+        );
+        gradient.addColorStop(0, bg.gradientColors[0]);
+        gradient.addColorStop(0.5, bg.gradientColors[1]);
+        gradient.addColorStop(1, bg.gradientColors[2]);
+        ctx.fillStyle = gradient;
+    } else if (bg && bg.backgroundColor) {
+        ctx.fillStyle = bg.backgroundColor;
+    } else {
+        ctx.fillStyle = '#000000';
+    }
+    ctx.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
+}
+
+// 渲染暗角
+function renderVignette() {
+    const gradient = ctx.createRadialGradient(
+        CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, CONFIG.canvas.width * 0.3,
+        CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, CONFIG.canvas.width * 0.7
+    );
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    gradient.addColorStop(1, `rgba(0, 0, 0, ${CONFIG.visual.background.vignetteStrength})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
 }
 
 // 渲染粒子
@@ -634,24 +1016,93 @@ function renderParticles() {
 
 // 渲染玩家
 function renderPlayer() {
-    if (player.blocking) {
-        ctx.strokeStyle = CONFIG.player.blockingRingColor;
-        ctx.lineWidth = 3;
+    const time = Date.now() / 1000;
+    
+    // 发光效果
+    if (CONFIG.visual && CONFIG.visual.glow && CONFIG.visual.glow.enabled) {
+        const glowGradient = ctx.createRadialGradient(
+            player.x, player.y, player.radius,
+            player.x, player.y, player.radius + CONFIG.visual.glow.playerGlow
+        );
+        glowGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = glowGradient;
         ctx.beginPath();
-        ctx.arc(player.x, player.y, player.radius + 8, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        ctx.strokeStyle = CONFIG.player.blockingRingColor2;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.radius + 12, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.arc(player.x, player.y, player.radius + CONFIG.visual.glow.playerGlow, 0, Math.PI * 2);
+        ctx.fill();
     }
     
+    // 格挡护盾
+    if (player.blocking && CONFIG.visual && CONFIG.visual.blockingShield) {
+        const cfg = CONFIG.visual.blockingShield;
+        const energyPercent = energy / CONFIG.energy.max;
+        
+        // 多层旋转光圈
+        for (let i = 0; i < cfg.layers; i++) {
+            const radius = player.radius + 8 + i * 5;
+            const rotation = time * cfg.rotationSpeed * (i % 2 === 0 ? 1 : -1);
+            const alpha = 0.6 - i * 0.15;
+            
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(rotation);
+            
+            // 根据能量改变颜色
+            let color;
+            if (energyPercent > 0.6) {
+                color = CONFIG.player.blockingRingColor;
+            } else if (energyPercent > 0.3) {
+                color = '#fa0';
+            } else {
+                color = '#f33';
+            }
+            
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = 3 - i;
+            ctx.beginPath();
+            
+            // 绘制六边形护盾
+            for (let j = 0; j < 6; j++) {
+                const angle = (Math.PI / 3) * j;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                if (j === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.closePath();
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        
+        ctx.globalAlpha = 1;
+    }
+    
+    // 玩家本体
     ctx.fillStyle = CONFIG.player.color;
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
     ctx.fill();
+    
+    // 玩家闪光效果
+    if (flashAlpha > 0 && CONFIG.visual && CONFIG.visual.flash && CONFIG.visual.flash.enabled) {
+        const flashRadius = player.radius + CONFIG.visual.flash.radius;
+        const flashGradient = ctx.createRadialGradient(
+            player.x, player.y, player.radius,
+            player.x, player.y, flashRadius
+        );
+        flashGradient.addColorStop(0, `rgba(255, 255, 255, ${flashAlpha})`);
+        flashGradient.addColorStop(0.5, `rgba(200, 230, 255, ${flashAlpha * 0.6})`);
+        flashGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = flashGradient;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, flashRadius, 0, Math.PI * 2);
+        ctx.fill();
+    }
 }
 
 // 渲染敌人
@@ -781,28 +1232,157 @@ function renderBullets() {
 
 // 渲染反击效果
 function renderCounterEffect() {
-    const cfg = CONFIG.counter;
+    const cfg = CONFIG.visual && CONFIG.visual.counterEffect ? CONFIG.visual.counterEffect : {
+        slashTrailWidth: 30,
+        slashGlowLayers: 3,
+        slashColor: '#0ff',
+        slashGlowColor: '#fff',
+        slashSize: 40
+    };
     const startX = player.counterStartX;
     const startY = player.counterStartY;
+    const endX = player.counterTarget.x;
+    const endY = player.counterTarget.y;
+    const currentX = player.x;
+    const currentY = player.y;
     
-    ctx.strokeStyle = cfg.trailColor.replace('1)', (1 - player.counterProgress) + ')');
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(player.x, player.y);
-    ctx.stroke();
+    // 计算刀光路径
+    const dx = currentX - startX;
+    const dy = currentY - startY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
     
-    if (player.counterProgress > cfg.slashThreshold) {
-        ctx.strokeStyle = cfg.slashColor.replace('1)', ((1 - player.counterProgress) * 3) + ')');
-        ctx.lineWidth = 5;
+    // 绘制刀光轨迹（多层）
+    for (let layer = cfg.slashGlowLayers - 1; layer >= 0; layer--) {
+        const widthMultiplier = 1 - layer * 0.3;
+        const width = cfg.slashTrailWidth * widthMultiplier;
+        const alpha = (0.6 - layer * 0.15) * (1 - player.counterProgress);
+        
+        // 刀光颜色：外层青色，内层白色
+        let color;
+        if (layer === 0) {
+            color = cfg.slashGlowColor; // 白色核心
+        } else if (layer === 1) {
+            color = cfg.slashColor; // 青色中层
+        } else {
+            color = '#08f'; // 蓝色外层
+        }
+        
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        
+        // 绘制刀光路径（带宽度的线条）
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        // 主刀光路径
         ctx.beginPath();
-        ctx.moveTo(player.x - 20, player.y - 20);
-        ctx.lineTo(player.x + 20, player.y + 20);
+        ctx.moveTo(startX, startY);
+        
+        // 添加轻微波动效果
+        const segments = 10;
+        for (let i = 1; i <= segments; i++) {
+            const t = i / segments;
+            const x = startX + dx * t;
+            const y = startY + dy * t;
+            
+            // 添加轻微的波动
+            const wave = Math.sin(t * Math.PI * 2) * 3 * (1 - player.counterProgress);
+            const offsetX = x + Math.cos(angle + Math.PI / 2) * wave;
+            const offsetY = y + Math.sin(angle + Math.PI / 2) * wave;
+            
+            ctx.lineTo(offsetX, offsetY);
+        }
+        
         ctx.stroke();
+        
+        // 刀光边缘光晕
+        if (layer === cfg.slashGlowLayers - 1) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = cfg.slashColor;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        
+        ctx.restore();
+    }
+    
+    // 刀光粒子效果
+    const particleCount = 15;
+    for (let i = 0; i < particleCount; i++) {
+        const t = i / particleCount;
+        const x = startX + dx * t;
+        const y = startY + dy * t;
+        
+        // 粒子向两侧飞散
+        const perpAngle = angle + Math.PI / 2;
+        const offset = (Math.random() - 0.5) * 20;
+        const px = x + Math.cos(perpAngle) * offset;
+        const py = y + Math.sin(perpAngle) * offset;
+        
+        ctx.fillStyle = cfg.slashColor;
+        ctx.globalAlpha = (1 - player.counterProgress) * 0.6;
         ctx.beginPath();
-        ctx.moveTo(player.x + 20, player.y - 20);
-        ctx.lineTo(player.x - 20, player.y + 20);
+        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    
+    // 闪电链效果
+    if (CONFIG.visual && CONFIG.visual.counterEffect && CONFIG.visual.counterEffect.lightningSegments) {
+        const segments = CONFIG.visual.counterEffect.lightningSegments;
+        ctx.strokeStyle = `rgba(100, 200, 255, ${(1 - player.counterProgress) * 0.5})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        
+        for (let i = 1; i < segments; i++) {
+            const t = i / segments;
+            const x = startX + dx * t;
+            const y = startY + dy * t;
+            const offset = (Math.random() - 0.5) * 15 * (1 - player.counterProgress);
+            ctx.lineTo(x + offset, y + offset);
+        }
+        ctx.lineTo(currentX, currentY);
         ctx.stroke();
+    }
+    
+    // 终点斩击效果
+    if (player.counterProgress > CONFIG.counter.slashThreshold) {
+        const slashAlpha = (1 - player.counterProgress) * 3;
+        const slashSize = cfg.slashSize;
+        
+        // 十字斩击
+        ctx.strokeStyle = cfg.slashGlowColor;
+        ctx.globalAlpha = slashAlpha;
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(currentX - slashSize, currentY - slashSize);
+        ctx.lineTo(currentX + slashSize, currentY + slashSize);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(currentX + slashSize, currentY - slashSize);
+        ctx.lineTo(currentX - slashSize, currentY + slashSize);
+        ctx.stroke();
+        
+        // 斩击光晕
+        const glowGradient = ctx.createRadialGradient(
+            currentX, currentY, 0,
+            currentX, currentY, slashSize * 1.5
+        );
+        glowGradient.addColorStop(0, `rgba(255, 255, 255, ${slashAlpha * 0.5})`);
+        glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(currentX, currentY, slashSize * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.globalAlpha = 1;
     }
 }
 
