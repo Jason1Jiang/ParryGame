@@ -79,7 +79,7 @@
     "spawnInField": true,
     "fadeInDuration": 500,
     "invincibleDuration": 800,
-    "spawnMargin": 500
+    "spawnMargin": 100
   },
   "counter": {
     "speed": 0.15,
