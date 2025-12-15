@@ -30,15 +30,30 @@
   - 完美格挡连击系统
   - 程序化音效系统
   
-- **[VISUAL_UPDATE_v2.5.md](visual-updates/VISUAL_UPDATE_v2.5.md)** - v2.5 多重反击系统（最新）
+- **[VISUAL_UPDATE_v2.5.md](visual-updates/VISUAL_UPDATE_v2.5.md)** - v2.5 多重反击系统
   - 极短时间窗口触发多重反击
   - 连续瞬移斩击多个敌人
   - 紫色刀光特效
+
+- **[BUGFIX_v2.5.1.md](visual-updates/BUGFIX_v2.5.1.md)** - v2.5.1 Bug 修复 ⚠️
+  - 修复格挡失效问题
+  - 反击期间格挡键状态记录
+  - 提升连续格挡可靠性
+
+- **[BUGFIX_v2.5.2.md](visual-updates/BUGFIX_v2.5.2.md)** - v2.5.2 Bug 修复（最新）🔥
+  - 修复连续格挡反击失效问题
+  - 反击期间能量恢复机制
+  - 多重反击期间允许普通反击
 
 - **[QUICK_GUIDE_v2.5.md](visual-updates/QUICK_GUIDE_v2.5.md)** - v2.5 快速上手指南 ⭐
   - 多重反击系统简明教程
   - 新手/进阶/高手技巧
   - 配置调整和常见问题
+
+- **[BLOCKING_SYSTEM_TEST.md](visual-updates/BLOCKING_SYSTEM_TEST.md)** - 格挡系统测试指南
+  - 普通格挡/完美格挡/多重反击测试
+  - 详细的测试场景和预期效果
+  - 常见问题排查
 
 ## ⚙️ 优化指南 (`optimization/`)
 
@@ -79,7 +94,10 @@ docs/
 │   ├── VISUAL_UPDATE_v2.3.md
 │   ├── VISUAL_UPDATE_v2.4.md
 │   ├── VISUAL_UPDATE_v2.5.md
-│   └── QUICK_GUIDE_v2.5.md           # 快速上手指南 ⭐
+│   ├── BUGFIX_v2.5.1.md              # Bug 修复文档 ⚠️
+│   ├── BUGFIX_v2.5.2.md              # Bug 修复文档（最新）🔥
+│   ├── QUICK_GUIDE_v2.5.md           # 快速上手指南 ⭐
+│   └── BLOCKING_SYSTEM_TEST.md       # 格挡系统测试指南
 ├── optimization/                      # 优化指南
 │   ├── CLARITY_OPTIMIZATION.md
 │   └── VISUAL_PRESETS.md
@@ -113,4 +131,4 @@ docs/
 ---
 
 **最后更新**: 2025-12-15  
-**当前版本**: v2.5
+**当前版本**: v2.5.2 (Bug 修复 - 连续格挡反击)
