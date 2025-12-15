@@ -28,55 +28,72 @@
 
 #### 原始代码逻辑
 ```javascript
-function updatePlayer() {
-    // 如果正在反击，直接返回，不执行后续逻辑
-    if (player.counterAttacking) {
-        // ... 反击动画逻辑
-        return; // ← 这里直接返回
-    }
+// 在 updateBullets() 或 updateMeleeEnemy() 中
+if (player.blocking && !player.counterAttacking) {
+    // 格挡成功
+    bullets.splice(i, 1);
     
-    // 格挡键状态更新（只有不在反击时才会执行）
-    const wasBlocking = player.blocking;
-    player.blocking = keys[' '] && energy > 0;
+    // 检查多重反击、完美格挡等...
     
-    // 记录格挡键按下时间
-    if (player.blocking && !wasBlocking) {
-        blockKeyPressTime = Date.now(); // ← 反击期间无法记录
+    // 更新格挡时间
+    lastParryTime = Date.now();
+    
+    triggerCounter(); // ← 立即设置 player.counterAttacking = true
+}
+```
+
+```javascript
+function triggerCounter(meleeEnemy = null) {
+    // 找到最近的敌人
+    let nearest = null;
+    // ...
+    
+    if (nearest) {
+        player.counterAttacking = true; // ← 立即设置为 true
+        player.counterTarget = nearest;
+        // ...
     }
 }
 ```
 
 #### 问题流程
 ```
-1. 玩家格挡成功 → 触发反击
-2. player.counterAttacking = true
-3. 反击期间（约117ms）：
-   - updatePlayer() 直接 return
-   - 无法记录格挡键按下时间
-   - 玩家可能一直按着空格键
-4. 反击完成：
-   - player.counterAttacking = false
-   - 敌人立即攻击
-5. 格挡判定：
-   - blockKeyPressTime = 0（因为反击期间没记录）
-   - 无法触发多重反击
-   - 或者格挡时机判断错误
+同一个 update() 循环中：
+
+1. 更新子弹/敌人 A：
+   - 检测到碰撞
+   - player.blocking = true, player.counterAttacking = false
+   - 格挡成功！
+   - 调用 triggerCounter()
+   - player.counterAttacking = true ← 立即设置
+
+2. 继续更新子弹/敌人 B（同一帧）：
+   - 检测到碰撞
+   - player.blocking = true, player.counterAttacking = true ← 已经是 true
+   - 条件判断：if (player.blocking && !player.counterAttacking)
+   - 条件失败！因为 counterAttacking 已经是 true
+   - 无法触发第二次反击
 ```
 
 #### 时间线示例
 ```
-时间轴：
-0ms    - 玩家按下空格键
-10ms   - 敌人攻击命中，格挡成功
-15ms   - 触发反击，blockKeyPressTime = 10
-20ms   - 反击进行中...
-50ms   - 玩家松开空格键（blockKeyPressTime = 0）
-80ms   - 玩家再次按下空格键
-85ms   - 但此时还在反击中，无法记录按键时间！
-120ms  - 反击完成
-125ms  - 第二个敌人攻击命中
-130ms  - 格挡判定：blockKeyPressTime = 0（错误！）
-       - 应该是 80ms，但因为反击期间没记录
+同一帧内（16ms）：
+0ms    - update() 开始
+1ms    - updateBullets() 处理子弹 A
+2ms    - 子弹 A 命中，player.blocking = true
+3ms    - 格挡成功，调用 triggerCounter()
+4ms    - player.counterAttacking = true ← 设置为 true
+5ms    - updateBullets() 继续处理子弹 B
+6ms    - 子弹 B 命中，player.blocking = true
+7ms    - 检查条件：player.blocking && !player.counterAttacking
+8ms    - 条件失败！counterAttacking 已经是 true
+9ms    - 子弹 B 被格挡，但不触发反击
+10ms   - update() 结束
+
+下一帧（16ms）：
+0ms    - updatePlayer() 开始处理反击动画
+       - 只会反击子弹 A 对应的敌人
+       - 子弹 B 的格挡没有触发反击
 ```
 
 ---
@@ -84,80 +101,116 @@ function updatePlayer() {
 ## 解决方案
 
 ### 修复策略
-将格挡键状态检测从 `updatePlayer()` 中分离出来，在主 `update()` 函数的最开始执行，确保**无论玩家是否在反击中，都能记录格挡键的状态变化**。
+延迟设置 `player.counterAttacking` 标志，在格挡判定时不立即设置，而是在下一帧的 `updatePlayer()` 中才开始反击动画。这样同一帧内的多个攻击都能正确触发反击。
 
 ### 修复后的代码
 
-#### 1. 新增函数：updateBlockKeyState()
+#### 方案 1：延迟设置 counterAttacking（推荐）
+
 ```javascript
-// 更新格挡键状态
-function updateBlockKeyState() {
-    // 检测格挡键是否被按下（无论玩家是否在反击中）
-    const isPressingBlockKey = keys[' '];
-    const wasPressingBlockKey = blockKeyPressTime > 0;
+// 修改 triggerCounter() 函数
+function triggerCounter(meleeEnemy = null) {
+    // 找到最近的敌人
+    let nearest = null;
+    let minDist = Infinity;
     
-    // 记录格挡键按下时间
-    if (isPressingBlockKey && !wasPressingBlockKey) {
-        blockKeyPressTime = Date.now();
-    } else if (!isPressingBlockKey && wasPressingBlockKey) {
-        blockKeyPressTime = 0;
+    for (const enemy of enemies) {
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minDist) {
+            minDist = dist;
+            nearest = enemy;
+        }
+    }
+    
+    if (nearest) {
+        // ✅ 不立即设置 counterAttacking，而是标记待反击
+        player.pendingCounter = true;
+        player.counterTarget = nearest;
+        player.counterStartX = player.x;
+        player.counterStartY = player.y;
+        
+        // 连击强化粒子
+        const burstCount = getEnhancedParticleCount();
+        createParticleBurst(player.x, player.y, burstCount);
+        
+        // 音效
+        playSound('counter');
     }
 }
 ```
 
-#### 2. 修改 update() 函数
 ```javascript
-function update() {
-    const now = Date.now();
-    gameTime = Math.floor((now - startTime) / 1000);
-    
-    // ✅ 在所有逻辑之前更新格挡键状态
-    updateBlockKeyState();
-    
-    // 更新视觉效果
-    updateVisualEffects();
-    
-    // 更新玩家
-    updatePlayer();
-    
-    // ... 其他更新逻辑
-}
-```
-
-#### 3. 简化 updatePlayer() 中的格挡逻辑
-```javascript
+// 修改 updatePlayer() 函数
 function updatePlayer() {
+    // ✅ 在这里才真正开始反击动画
+    if (player.pendingCounter && !player.counterAttacking) {
+        player.counterAttacking = true;
+        player.pendingCounter = false;
+        player.counterProgress = 0;
+    }
+    
     // 反击动画
     if (player.counterAttacking) {
-        // ... 反击逻辑
+        player.counterProgress += CONFIG.counter.speed;
+        if (player.counterProgress >= 1) {
+            // ... 反击完成逻辑
+            player.counterAttacking = false;
+            player.counterTarget = null;
+        } else {
+            // ... 反击进行中逻辑
+        }
         return;
     }
     
-    // ... 移动逻辑
-    
-    // 格挡（格挡键状态已在 updateBlockKeyState 中更新）
-    player.blocking = keys[' '] && energy > 0;
+    // ... 移动和格挡逻辑
 }
 ```
 
-### 修复后的时间线
+#### 方案 2：允许反击中格挡（备选）
+
+```javascript
+// 修改格挡判定条件
+if (player.blocking) { // ← 移除 !player.counterAttacking 条件
+    // 格挡成功
+    bullets.splice(i, 1);
+    
+    // 如果已经在反击中，将新目标加入队列
+    if (player.counterAttacking) {
+        // 加入多重反击队列
+        if (!multiCounterActive) {
+            multiCounterQueue.push(findNearestEnemy());
+        }
+    } else {
+        // 正常触发反击
+        triggerCounter();
+    }
+}
 ```
-时间轴：
-0ms    - 玩家按下空格键
-       - updateBlockKeyState() 记录 blockKeyPressTime = 0
-10ms   - 敌人攻击命中，格挡成功
-15ms   - 触发反击
-20ms   - 反击进行中...
-50ms   - 玩家松开空格键
-       - updateBlockKeyState() 清除 blockKeyPressTime = 0
-80ms   - 玩家再次按下空格键
-       - ✅ updateBlockKeyState() 记录 blockKeyPressTime = 80
-85ms   - 反击还在进行中（但按键时间已记录！）
-120ms  - 反击完成
-125ms  - 第二个敌人攻击命中
-130ms  - 格挡判定：blockKeyPressTime = 80
-       - 时间差 = 130 - 80 = 50ms < 150ms
-       - ✅ 成功触发多重反击！
+
+### 修复后的时间线（方案 1）
+```
+同一帧内（16ms）：
+0ms    - update() 开始
+1ms    - updateBullets() 处理子弹 A
+2ms    - 子弹 A 命中，player.blocking = true
+3ms    - 格挡成功，调用 triggerCounter()
+4ms    - player.pendingCounter = true ← 只是标记，不设置 counterAttacking
+5ms    - updateBullets() 继续处理子弹 B
+6ms    - 子弹 B 命中，player.blocking = true
+7ms    - 检查条件：player.blocking && !player.counterAttacking
+8ms    - 条件成功！counterAttacking 还是 false
+9ms    - 子弹 B 格挡成功，也调用 triggerCounter()
+10ms   - player.pendingCounter = true，更新 counterTarget 为最近的敌人
+11ms   - update() 结束
+
+下一帧（16ms）：
+0ms    - updatePlayer() 开始
+1ms    - 检测到 player.pendingCounter = true
+2ms    - 设置 player.counterAttacking = true ← 现在才开始反击
+3ms    - 开始反击动画
+       - ✅ 两次格挡都被正确处理，反击最近的敌人
 ```
 
 ---
@@ -165,58 +218,60 @@ function updatePlayer() {
 ## 修复效果
 
 ### 修复前 ❌
-- 反击期间无法记录格挡键状态
-- 连续格挡时容易失效
-- 多重反击难以触发
-- 玩家体验差
+- 第一次格挡成功后，同一帧内的后续格挡无法触发反击
+- 被多个敌人围攻时，只有第一个攻击会触发反击
+- 多重反击几乎无法触发（因为第二次格挡不会触发反击）
+- 玩家体验差，感觉格挡"失效"
 
 ### 修复后 ✅
-- 任何时候都能记录格挡键状态
-- 连续格挡流畅可靠
-- 多重反击触发准确
-- 玩家体验提升
+- 同一帧内的多次格挡都能正确处理
+- 被围攻时，每次格挡都会更新反击目标为最近的敌人
+- 多重反击能正常触发
+- 玩家体验提升，格挡响应更可靠
 
 ---
 
 ## 测试验证
 
-### 测试场景 1：连续格挡
+### 测试场景 1：同时多个攻击
 ```
 步骤：
-1. 格挡第一个敌人
-2. 反击期间，第二个敌人攻击
-3. 保持按住空格键
+1. 生成 3 个远程敌人
+2. 让它们同时射击（调整射击间隔）
+3. 按住空格键格挡
 
 预期结果：
-✅ 第二次格挡成功
-✅ 能正常触发反击
+✅ 所有子弹都被格挡
+✅ 触发反击，瞬移到最近的敌人
+✅ 不会出现"格挡成功但不反击"的情况
 ```
 
-### 测试场景 2：多重反击
+### 测试场景 2：近战+远程混合
 ```
 步骤：
-1. 观察敌人即将攻击
-2. 在攻击瞬间按下空格键
-3. 格挡成功后立即有第二个敌人攻击
-4. 保持按住空格键
+1. 生成 1 个近战敌人 + 2 个远程敌人
+2. 让近战敌人攻击的同时，远程敌人射击
+3. 按住空格键格挡
 
 预期结果：
-✅ 第一次触发多重反击
-✅ 反击期间按键时间被记录
-✅ 第二次也能触发多重反击（如果时机正确）
+✅ 近战攻击被格挡
+✅ 子弹也被格挡
+✅ 触发反击（反击最近的敌人）
+✅ 所有格挡都生效
 ```
 
-### 测试场景 3：快速连续格挡
+### 测试场景 3：多重反击触发
 ```
 步骤：
-1. 被多个敌人围攻
-2. 快速连续格挡多次
-3. 观察每次格挡是否生效
+1. 被 3 个敌人围攻
+2. 在它们即将攻击时按下空格键（150ms 内）
+3. 观察是否触发多重反击
 
 预期结果：
-✅ 所有格挡都能生效
-✅ 不会出现格挡失效的情况
-✅ 多重反击能正常触发
+✅ 所有攻击都被格挡
+✅ 触发多重反击（紫色特效）
+✅ 连续斩击 3 个敌人
+✅ 不会因为第一次格挡就阻止后续格挡
 ```
 
 ---
@@ -245,52 +300,52 @@ function updatePlayer() {
 ### 修改文件
 - `game.js`
 
-### 新增函数
-- `updateBlockKeyState()` - 更新格挡键状态
+### 新增变量
+- `player.pendingCounter` - 标记是否有待处理的反击
 
 ### 修改函数
-- `update()` - 添加 updateBlockKeyState() 调用
-- `updatePlayer()` - 简化格挡键状态更新逻辑
+- `triggerCounter()` - 不立即设置 counterAttacking，改为设置 pendingCounter
+- `updatePlayer()` - 在反击动画开始前检查 pendingCounter
 
 ### 代码行数
-- 新增：约 15 行
-- 修改：约 5 行
-- 删除：约 8 行
-- 净增加：约 12 行
+- 新增：约 8 行
+- 修改：约 10 行
+- 删除：约 2 行
+- 净增加：约 16 行
 
 ---
 
 ## 相关问题
 
-### Q1: 为什么不在反击期间允许格挡？
-**A**: 反击是一个快速的瞬移动画（约117ms），在此期间玩家应该是无敌的。允许格挡会导致逻辑混乱。我们只需要记录按键状态，不需要实际执行格挡。
+### Q1: 为什么不直接移除 !player.counterAttacking 条件？
+**A**: 如果移除这个条件，玩家在反击动画期间也能格挡，这会导致逻辑混乱（同时处于反击和格挡状态）。使用 pendingCounter 标志可以保持逻辑清晰，同时解决同一帧内多次格挡的问题。
 
-### Q2: 这个修复会影响其他系统吗？
-**A**: 不会。我们只是将按键状态检测提前，不影响格挡判定、能量消耗等其他逻辑。
+### Q2: 如果同一帧内有 3 个攻击，会触发 3 次反击吗？
+**A**: 不会。每次调用 `triggerCounter()` 都会更新 `counterTarget` 为最近的敌人，所以最终只会反击一次，目标是最后一次格挡时最近的敌人。
 
-### Q3: 多重反击的时间窗口会受影响吗？
-**A**: 不会。时间窗口的计算逻辑没有改变，只是确保按键时间能被正确记录。
+### Q3: 这个修复会影响多重反击吗？
+**A**: 不会影响，反而会改善。修复后，同一帧内的多次格挡都能被正确处理，多重反击的触发条件（150ms 内多次格挡）更容易满足。
 
-### Q4: 完美格挡会受影响吗？
-**A**: 不会。完美格挡的判定基于 `lastParryTime`，与 `blockKeyPressTime` 无关。
+### Q4: 为什么不使用队列存储所有待反击的敌人？
+**A**: 这会让游戏变得过于简单。当前设计是每次格挡只反击一个敌人（最近的），这保持了游戏的挑战性。多重反击系统已经提供了一次反击多个敌人的机制。
 
 ---
 
 ## 后续优化建议
 
-### 短期（已完成）
-- ✅ 修复格挡键状态记录问题
-- ✅ 测试连续格挡场景
-- ✅ 验证多重反击触发
+### 短期（待完成）
+- [ ] 实现 pendingCounter 标志机制
+- [ ] 测试同一帧多次格挡场景
+- [ ] 验证多重反击触发
 
 ### 中期
-- [ ] 添加格挡缓冲机制（提前按键也能生效）
-- [ ] 优化反击动画速度
+- [ ] 考虑是否需要反击队列（一次反击多个敌人）
+- [ ] 优化反击目标选择逻辑（优先近战敌人？）
 - [ ] 添加格挡失败的视觉反馈
 
 ### 长期
 - [ ] 添加格挡成功率统计
-- [ ] 优化多重反击的目标选择
+- [ ] 添加"连续格挡"成就系统
 - [ ] 添加格挡教学提示
 
 ---
