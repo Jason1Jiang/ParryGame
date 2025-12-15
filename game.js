@@ -671,6 +671,7 @@ function triggerMultiCounter() {
     // 激活多重反击
     multiCounterActive = true;
     multiCounterQueue = targets.slice();
+    console.log('[triggerMultiCounter] Activated, queue length:', multiCounterQueue.length, 'targets:', targets.map(t => t.type));
     
     // 超强视觉效果
     triggerFlash(2.0);
@@ -695,7 +696,9 @@ function triggerMultiCounter() {
 
 // 执行下一次多重反击
 function executeNextMultiCounter() {
+    console.log('[executeNextMultiCounter] queue length:', multiCounterQueue.length);
     if (multiCounterQueue.length === 0) {
+        console.log('[executeNextMultiCounter] Queue empty, setting multiCounterActive = false');
         multiCounterActive = false;
         return;
     }
