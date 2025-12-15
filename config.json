@@ -75,7 +75,11 @@
     "minInterval": 800,
     "intervalDecreasePerSecond": 20,
     "meleeStartTime": 30,
-    "meleeSpawnChance": 0.3
+    "meleeSpawnChance": 0.3,
+    "spawnInField": true,
+    "fadeInDuration": 500,
+    "invincibleDuration": 800,
+    "spawnMargin": 500
   },
   "counter": {
     "speed": 0.15,
