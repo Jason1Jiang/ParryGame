@@ -1159,7 +1159,9 @@ function updateMeleeEnemy(enemy, now) {
             disturbParticles(enemy.x, enemy.y, CONFIG.effects.dashDisturbRadius, CONFIG.effects.dashDisturbForce);
             
             if (checkMeleeHit(enemy)) {
+                console.log('[Melee Hit] blocking:', player.blocking, 'counterAttacking:', player.counterAttacking, 'energy:', energy);
                 if (player.blocking && !player.counterAttacking) {
+                    console.log('[Melee Block Success]');
                     // 检查是否触发多重反击
                     const isMulti = checkMultiCounter();
                     
@@ -1189,6 +1191,7 @@ function updateMeleeEnemy(enemy, now) {
                         // 更新格挡时间
                         lastParryTime = Date.now();
                         
+                        console.log('[Trigger Counter] enemy:', enemy.type);
                         triggerCounter(enemy);
                         enemy.state = 'cooldown';
                         enemy.stateTime = now;
@@ -1245,7 +1248,9 @@ function updateBullets() {
         const dist = Math.sqrt(dx * dx + dy * dy);
         
         if (dist < player.radius + bullet.radius) {
+            console.log('[Bullet Hit] blocking:', player.blocking, 'counterAttacking:', player.counterAttacking, 'energy:', energy);
             if (player.blocking && !player.counterAttacking) {
+                console.log('[Bullet Block Success]');
                 // 格挡成功
                 bullets.splice(i, 1);
                 
@@ -1279,6 +1284,7 @@ function updateBullets() {
                     // 更新格挡时间
                     lastParryTime = Date.now();
                     
+                    console.log('[Trigger Counter] bullet');
                     triggerCounter();
                 }
             } else if (!player.counterAttacking) {
