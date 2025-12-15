@@ -79,7 +79,11 @@
     "spawnInField": true,
     "fadeInDuration": 500,
     "invincibleDuration": 800,
-    "spawnMargin": 100
+    "spawnMargin": 100,
+    "minDistanceFromPlayer": 200,
+    "spawnParticles": 30,
+    "spawnParticleSpeed": 8,
+    "spawnSound": true
   },
   "counter": {
     "speed": 0.15,
