@@ -698,8 +698,9 @@ function triggerMultiCounter() {
 function executeNextMultiCounter() {
     console.log('[executeNextMultiCounter] queue length:', multiCounterQueue.length);
     if (multiCounterQueue.length === 0) {
-        console.log('[executeNextMultiCounter] Queue empty, setting multiCounterActive = false');
+        console.log('[executeNextMultiCounter] Queue empty, resetting multi-counter state');
         multiCounterActive = false;
+        player.isMultiCounter = false;
         return;
     }
     
@@ -974,14 +975,15 @@ function updatePlayer() {
             player.counterTarget = null;
             player.counterProgress = 0;
             
-            // 如果是多重反击，继续下一个目标
-            if (player.isMultiCounter && multiCounterQueue.length > 0) {
+            // 如果是多重反击，继续下一个目标（或结束多重反击）
+            if (player.isMultiCounter) {
+                console.log('[Counter Complete] Multi-counter, queue length:', multiCounterQueue.length);
                 const cfg = CONFIG.visual?.multiCounter;
                 setTimeout(() => {
                     executeNextMultiCounter();
                 }, cfg.delayBetweenCounters);
             } else {
-                player.isMultiCounter = false;
+                console.log('[Counter Complete] Normal counter finished');
             }
         } else {
             // 插值移动
