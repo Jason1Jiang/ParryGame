@@ -33,9 +33,11 @@ let wasPressingBlockKeyLastFrame = false; // 上一帧是否按着格挡键
 // 加载配置
 async function loadConfig() {
     try {
-        const response = await fetch('config.json');
+        // 添加时间戳防止缓存
+        const response = await fetch('config.json?t=' + Date.now());
         CONFIG = await response.json();
         console.log('配置加载成功:', CONFIG);
+        console.log('spawn配置:', CONFIG.spawn);
     } catch (error) {
         console.error('配置加载失败:', error);
         alert('无法加载游戏配置文件！');
