@@ -831,11 +831,9 @@ function updateBlockKeyState() {
     if (isPressingBlockKey && !wasPressingBlockKeyLastFrame) {
         // 刚按下格挡键
         blockKeyPressTime = Date.now();
-        console.log('[BlockKey] Pressed at:', blockKeyPressTime);
     } else if (!isPressingBlockKey && wasPressingBlockKeyLastFrame) {
         // 刚松开格挡键
         blockKeyPressTime = 0;
-        console.log('[BlockKey] Released');
     }
     
     // 更新上一帧状态
