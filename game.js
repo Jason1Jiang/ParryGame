@@ -28,6 +28,7 @@ let audioContext = null; // 音频上下文
 let blockKeyPressTime = 0; // 格挡键按下时间
 let multiCounterQueue = []; // 多重反击队列
 let multiCounterActive = false; // 多重反击是否激活
+let wasPressingBlockKeyLastFrame = false; // 上一帧是否按着格挡键
 
 // 加载配置
 async function loadConfig() {
@@ -114,6 +115,7 @@ function startGame() {
     blockKeyPressTime = 0;
     multiCounterQueue = [];
     multiCounterActive = false;
+    wasPressingBlockKeyLastFrame = false;
     
     // 初始化音频
     initAudio();
@@ -639,8 +641,12 @@ function checkMultiCounter() {
     const now = Date.now();
     const timeSinceKeyPress = now - blockKeyPressTime;
     
+    console.log('[checkMultiCounter] timeSinceKeyPress:', timeSinceKeyPress, 'timeWindow:', cfg.timeWindow, 'blockKeyPressTime:', blockKeyPressTime);
+    
     // 如果在按下格挡键的极短时间内成功格挡，触发多重反击
-    return timeSinceKeyPress < cfg.timeWindow && timeSinceKeyPress > 0;
+    const result = timeSinceKeyPress < cfg.timeWindow && timeSinceKeyPress > 0;
+    console.log('[checkMultiCounter] result:', result);
+    return result;
 }
 
 // 触发多重反击
@@ -816,14 +822,20 @@ function playSound(soundType) {
 function updateBlockKeyState() {
     // 检测格挡键是否被按下（无论玩家是否在反击中）
     const isPressingBlockKey = keys[' '];
-    const wasPressingBlockKey = blockKeyPressTime > 0;
     
     // 记录格挡键按下时间
-    if (isPressingBlockKey && !wasPressingBlockKey) {
+    if (isPressingBlockKey && !wasPressingBlockKeyLastFrame) {
+        // 刚按下格挡键
         blockKeyPressTime = Date.now();
-    } else if (!isPressingBlockKey && wasPressingBlockKey) {
+        console.log('[BlockKey] Pressed at:', blockKeyPressTime);
+    } else if (!isPressingBlockKey && wasPressingBlockKeyLastFrame) {
+        // 刚松开格挡键
         blockKeyPressTime = 0;
+        console.log('[BlockKey] Released');
     }
+    
+    // 更新上一帧状态
+    wasPressingBlockKeyLastFrame = isPressingBlockKey;
 }
 
 // 游戏循环
@@ -1159,11 +1171,9 @@ function updateMeleeEnemy(enemy, now) {
             disturbParticles(enemy.x, enemy.y, CONFIG.effects.dashDisturbRadius, CONFIG.effects.dashDisturbForce);
             
             if (checkMeleeHit(enemy)) {
-                console.log('[Melee Hit] blocking:', player.blocking, 'counterAttacking:', player.counterAttacking, 'energy:', energy);
                 if (player.blocking && !player.counterAttacking) {
-                    console.log('[Melee Block Success]');
-                    // 检查是否触发多重反击
-                    const isMulti = checkMultiCounter();
+                    // 检查是否触发多重反击（只有在没有进行多重反击时才检查）
+                    const isMulti = !multiCounterActive && checkMultiCounter();
                     
                     if (isMulti) {
                         // 多重反击效果
@@ -1191,7 +1201,6 @@ function updateMeleeEnemy(enemy, now) {
                         // 更新格挡时间
                         lastParryTime = Date.now();
                         
-                        console.log('[Trigger Counter] enemy:', enemy.type);
                         triggerCounter(enemy);
                         enemy.state = 'cooldown';
                         enemy.stateTime = now;
@@ -1248,14 +1257,15 @@ function updateBullets() {
         const dist = Math.sqrt(dx * dx + dy * dy);
         
         if (dist < player.radius + bullet.radius) {
-            console.log('[Bullet Hit] blocking:', player.blocking, 'counterAttacking:', player.counterAttacking, 'energy:', energy);
+            console.log('[Bullet Hit] blocking:', player.blocking, 'counterAttacking:', player.counterAttacking, 'multiCounterActive:', multiCounterActive);
             if (player.blocking && !player.counterAttacking) {
                 console.log('[Bullet Block Success]');
                 // 格挡成功
                 bullets.splice(i, 1);
                 
-                // 检查是否触发多重反击
-                const isMulti = checkMultiCounter();
+                // 检查是否触发多重反击（只有在没有进行多重反击时才检查）
+                const isMulti = !multiCounterActive && checkMultiCounter();
+                console.log('[Block] isMulti:', isMulti, 'multiCounterActive:', multiCounterActive);
                 
                 if (isMulti) {
                     // 多重反击效果
@@ -1284,7 +1294,6 @@ function updateBullets() {
                     // 更新格挡时间
                     lastParryTime = Date.now();
                     
-                    console.log('[Trigger Counter] bullet');
                     triggerCounter();
                 }
             } else if (!player.counterAttacking) {
