@@ -25,6 +25,9 @@ let lastParryTime = 0; // 上次格挡时间
 let perfectParryCombo = 0; // 完美格挡连击数
 let perfectParryComboTimer = 0; // 完美格挡连击计时器
 let audioContext = null; // 音频上下文
+let blockKeyPressTime = 0; // 格挡键按下时间
+let multiCounterQueue = []; // 多重反击队列
+let multiCounterActive = false; // 多重反击是否激活
 
 // 加载配置
 async function loadConfig() {
@@ -108,6 +111,9 @@ function startGame() {
     lastParryTime = 0;
     perfectParryCombo = 0;
     perfectParryComboTimer = 0;
+    blockKeyPressTime = 0;
+    multiCounterQueue = [];
+    multiCounterActive = false;
     
     // 初始化音频
     initAudio();
@@ -494,7 +500,8 @@ function createEnhancedSlashTrail(startX, startY, endX, endY, duration) {
         life: duration || cfg.duration,
         maxLife: duration || cfg.duration,
         enhanced: isEnhanced,
-        comboLevel: comboCount
+        comboLevel: comboCount,
+        isMultiCounter: player.isMultiCounter || false
     });
 }
 
@@ -550,9 +557,19 @@ function renderSlashTrails() {
                 
                 ctx.globalAlpha = alpha;
                 
-                // 彩虹刀光（高连击）
+                // 多重反击刀光（紫色）
                 let color;
-                if (trail.comboLevel >= 5 && CONFIG.visual?.perfectParryCombo?.specialEffects?.rainbowSlash) {
+                if (trail.isMultiCounter) {
+                    const multiCfg = CONFIG.visual?.multiCounter;
+                    if (layer === 0) {
+                        color = '#fff'; // 白色核心
+                    } else if (layer === 1) {
+                        color = '#ff00ff'; // 紫色中层
+                    } else {
+                        color = multiCfg?.trailColor || '#ff00ff'; // 紫色外层
+                    }
+                } else if (trail.comboLevel >= 5 && CONFIG.visual?.perfectParryCombo?.specialEffects?.rainbowSlash) {
+                    // 彩虹刀光（高连击）
                     const hue = (Date.now() / 10 + layer * 60) % 360;
                     color = `hsl(${hue}, 100%, 60%)`;
                 } else if (layer === 0) {
@@ -612,6 +629,93 @@ function isPerfectParry() {
     
     // 在时间窗口内格挡算完美格挡
     return timeSinceLastParry <= cfg.timeWindow;
+}
+
+// 检查是否触发多重反击
+function checkMultiCounter() {
+    const cfg = CONFIG.visual?.multiCounter;
+    if (!cfg || !cfg.enabled) return false;
+    
+    const now = Date.now();
+    const timeSinceKeyPress = now - blockKeyPressTime;
+    
+    // 如果在按下格挡键的极短时间内成功格挡，触发多重反击
+    return timeSinceKeyPress < cfg.timeWindow && timeSinceKeyPress > 0;
+}
+
+// 触发多重反击
+function triggerMultiCounter() {
+    const cfg = CONFIG.visual?.multiCounter;
+    if (!cfg || !cfg.enabled || multiCounterActive) return;
+    
+    // 找到最近的多个敌人
+    const targets = [];
+    const sortedEnemies = enemies.slice().sort((a, b) => {
+        const distA = Math.hypot(a.x - player.x, a.y - player.y);
+        const distB = Math.hypot(b.x - player.x, b.y - player.y);
+        return distA - distB;
+    });
+    
+    for (let i = 0; i < Math.min(cfg.maxTargets, sortedEnemies.length); i++) {
+        targets.push(sortedEnemies[i]);
+    }
+    
+    if (targets.length === 0) return;
+    
+    // 激活多重反击
+    multiCounterActive = true;
+    multiCounterQueue = targets.slice();
+    
+    // 超强视觉效果
+    triggerFlash(2.0);
+    triggerScreenShake(cfg.screenShakeIntensity);
+    triggerTimeScale(cfg.timeSlowScale, cfg.timeSlowDuration);
+    
+    // 额外能量恢复
+    energy = Math.min(CONFIG.energy.max, energy + cfg.bonusEnergy);
+    
+    // 飘字提示
+    addFloatingText(player.x, player.y - 40, `MULTI COUNTER x${targets.length}!`, cfg.flashColor, 36);
+    
+    // 创建紫色冲击波
+    createShockwave(player.x, player.y, 150, cfg.flashColor);
+    
+    // 音效
+    playSound('perfectParry');
+    
+    // 开始第一次反击
+    executeNextMultiCounter();
+}
+
+// 执行下一次多重反击
+function executeNextMultiCounter() {
+    if (multiCounterQueue.length === 0) {
+        multiCounterActive = false;
+        return;
+    }
+    
+    const target = multiCounterQueue.shift();
+    
+    // 检查目标是否还存在
+    if (!enemies.includes(target)) {
+        executeNextMultiCounter();
+        return;
+    }
+    
+    // 开始反击
+    player.counterAttacking = true;
+    player.counterTarget = target;
+    player.counterProgress = 0;
+    player.counterStartX = player.x;
+    player.counterStartY = player.y;
+    player.isMultiCounter = true;
+    
+    // 紫色粒子爆发
+    const cfg = CONFIG.visual?.multiCounter;
+    createParticleBurst(player.x, player.y, CONFIG.counter.particleBurstCount * 2);
+    
+    // 音效
+    playSound('counter');
 }
 
 // 触发完美格挡效果
@@ -708,6 +812,20 @@ function playSound(soundType) {
     }
 }
 
+// 更新格挡键状态
+function updateBlockKeyState() {
+    // 检测格挡键是否被按下（无论玩家是否在反击中）
+    const isPressingBlockKey = keys[' '];
+    const wasPressingBlockKey = blockKeyPressTime > 0;
+    
+    // 记录格挡键按下时间
+    if (isPressingBlockKey && !wasPressingBlockKey) {
+        blockKeyPressTime = Date.now();
+    } else if (!isPressingBlockKey && wasPressingBlockKey) {
+        blockKeyPressTime = 0;
+    }
+}
+
 // 游戏循环
 function gameLoop() {
     if (gameState !== 'playing') return;
@@ -721,6 +839,9 @@ function gameLoop() {
 function update() {
     const now = Date.now();
     gameTime = Math.floor((now - startTime) / 1000);
+    
+    // 更新格挡键状态（在所有逻辑之前，确保能记录按键时间）
+    updateBlockKeyState();
     
     // 更新视觉效果
     updateVisualEffects();
@@ -837,6 +958,16 @@ function updatePlayer() {
             player.counterAttacking = false;
             player.counterTarget = null;
             player.counterProgress = 0;
+            
+            // 如果是多重反击，继续下一个目标
+            if (player.isMultiCounter && multiCounterQueue.length > 0) {
+                const cfg = CONFIG.visual?.multiCounter;
+                setTimeout(() => {
+                    executeNextMultiCounter();
+                }, cfg.delayBetweenCounters);
+            } else {
+                player.isMultiCounter = false;
+            }
         } else {
             // 插值移动
             const startX = player.counterStartX;
@@ -872,7 +1003,7 @@ function updatePlayer() {
         disturbParticles(player.x, player.y, CONFIG.effects.movementDisturbRadius, CONFIG.effects.movementDisturbForce);
     }
     
-    // 格挡
+    // 格挡（格挡键状态已在 updateBlockKeyState 中更新）
     player.blocking = keys[' '] && energy > 0;
 }
 
@@ -1029,29 +1160,39 @@ function updateMeleeEnemy(enemy, now) {
             
             if (checkMeleeHit(enemy)) {
                 if (player.blocking && !player.counterAttacking) {
-                    // 检查是否为完美格挡
-                    const perfect = isPerfectParry();
+                    // 检查是否触发多重反击
+                    const isMulti = checkMultiCounter();
                     
-                    if (perfect) {
-                        // 完美格挡效果
-                        triggerPerfectParry();
-                        createParticleBurst(player.x, player.y, CONFIG.effects.blockBurstCount * 1.5);
-                        createShockwave(player.x, player.y, 70, '#ffd700');
+                    if (isMulti) {
+                        // 多重反击效果
+                        triggerMultiCounter();
+                        enemy.state = 'cooldown';
+                        enemy.stateTime = now;
                     } else {
-                        // 普通格挡效果
-                        triggerScreenShake(CONFIG.visual.screenShake.blockSuccess);
-                        triggerTimeScale(CONFIG.visual.timeScale.blockSuccess, CONFIG.visual.timeScale.duration);
-                        triggerFlash(CONFIG.visual.flash.blockSuccess);
-                        createParticleBurst(player.x, player.y, CONFIG.effects.blockBurstCount);
-                        createShockwave(player.x, player.y, 50, '#0cf');
+                        // 检查是否为完美格挡
+                        const perfect = isPerfectParry();
+                        
+                        if (perfect) {
+                            // 完美格挡效果
+                            triggerPerfectParry();
+                            createParticleBurst(player.x, player.y, CONFIG.effects.blockBurstCount * 1.5);
+                            createShockwave(player.x, player.y, 70, '#ffd700');
+                        } else {
+                            // 普通格挡效果
+                            triggerScreenShake(CONFIG.visual.screenShake.blockSuccess);
+                            triggerTimeScale(CONFIG.visual.timeScale.blockSuccess, CONFIG.visual.timeScale.duration);
+                            triggerFlash(CONFIG.visual.flash.blockSuccess);
+                            createParticleBurst(player.x, player.y, CONFIG.effects.blockBurstCount);
+                            createShockwave(player.x, player.y, 50, '#0cf');
+                        }
+                        
+                        // 更新格挡时间
+                        lastParryTime = Date.now();
+                        
+                        triggerCounter(enemy);
+                        enemy.state = 'cooldown';
+                        enemy.stateTime = now;
                     }
-                    
-                    // 更新格挡时间
-                    lastParryTime = Date.now();
-                    
-                    triggerCounter(enemy);
-                    enemy.state = 'cooldown';
-                    enemy.stateTime = now;
                 } else if (!player.counterAttacking) {
                     gameOver();
                     return;
@@ -1108,30 +1249,38 @@ function updateBullets() {
                 // 格挡成功
                 bullets.splice(i, 1);
                 
-                // 检查是否为完美格挡
-                const perfect = isPerfectParry();
+                // 检查是否触发多重反击
+                const isMulti = checkMultiCounter();
                 
-                if (perfect) {
-                    // 完美格挡效果
-                    triggerPerfectParry();
-                    createParticleBurst(bullet.x, bullet.y, CONFIG.effects.blockBurstCount * 1.5);
-                    createShockwave(bullet.x, bullet.y, 70, '#ffd700');
+                if (isMulti) {
+                    // 多重反击效果
+                    triggerMultiCounter();
                 } else {
-                    // 普通格挡效果
-                    triggerScreenShake(CONFIG.visual.screenShake.blockSuccess);
-                    triggerTimeScale(CONFIG.visual.timeScale.blockSuccess, CONFIG.visual.timeScale.duration);
-                    triggerFlash(CONFIG.visual.flash.blockSuccess);
-                    createParticleBurst(bullet.x, bullet.y, CONFIG.effects.blockBurstCount);
-                    createShockwave(bullet.x, bullet.y, 50, '#0cf');
+                    // 检查是否为完美格挡
+                    const perfect = isPerfectParry();
                     
-                    // 音效
-                    playSound('parry');
+                    if (perfect) {
+                        // 完美格挡效果
+                        triggerPerfectParry();
+                        createParticleBurst(bullet.x, bullet.y, CONFIG.effects.blockBurstCount * 1.5);
+                        createShockwave(bullet.x, bullet.y, 70, '#ffd700');
+                    } else {
+                        // 普通格挡效果
+                        triggerScreenShake(CONFIG.visual.screenShake.blockSuccess);
+                        triggerTimeScale(CONFIG.visual.timeScale.blockSuccess, CONFIG.visual.timeScale.duration);
+                        triggerFlash(CONFIG.visual.flash.blockSuccess);
+                        createParticleBurst(bullet.x, bullet.y, CONFIG.effects.blockBurstCount);
+                        createShockwave(bullet.x, bullet.y, 50, '#0cf');
+                        
+                        // 音效
+                        playSound('parry');
+                    }
+                    
+                    // 更新格挡时间
+                    lastParryTime = Date.now();
+                    
+                    triggerCounter();
                 }
-                
-                // 更新格挡时间
-                lastParryTime = Date.now();
-                
-                triggerCounter();
             } else if (!player.counterAttacking) {
                 // 玩家被击中
                 gameOver();

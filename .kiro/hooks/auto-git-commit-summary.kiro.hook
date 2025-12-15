@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Auto Git Commit with Summary",
+  "description": "Automatically generates a summary of file changes and commits them to git whenever files are edited",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Please analyze the changes made to the files and create a concise summary in Chinese. Then commit these changes to git with an appropriate commit message based on the summary. Use git commands to stage the changes and commit them."
+  }
+}

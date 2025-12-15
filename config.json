@@ -158,6 +158,18 @@
       "timeSlowScale": 0.1,
       "timeSlowDuration": 200
     },
+    "multiCounter": {
+      "enabled": true,
+      "timeWindow": 150,
+      "maxTargets": 3,
+      "delayBetweenCounters": 200,
+      "flashColor": "#ff00ff",
+      "trailColor": "#ff00ff",
+      "bonusEnergy": 20,
+      "screenShakeIntensity": 20,
+      "timeSlowScale": 0.05,
+      "timeSlowDuration": 500
+    },
     "enemyDeath": {
       "explosionParticles": 40,
       "explosionSpeed": 8,
