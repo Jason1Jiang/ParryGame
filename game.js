@@ -153,12 +153,19 @@ function createParticle() {
 function createEnemy(type) {
     let x, y;
     
+    console.log('[createEnemy] spawnInField:', CONFIG.spawn.spawnInField);
+    
     // 检查是否在场内生成
     if (CONFIG.spawn.spawnInField) {
         // 在场内随机位置生成，保持一定边距
-        const margin = CONFIG.spawn.spawnMargin;
-        x = margin + Math.random() * (CONFIG.canvas.width - margin * 2);
-        y = margin + Math.random() * (CONFIG.canvas.height - margin * 2);
+        const margin = Math.min(CONFIG.spawn.spawnMargin, CONFIG.canvas.width / 4, CONFIG.canvas.height / 4);
+        const spawnWidth = CONFIG.canvas.width - margin * 2;
+        const spawnHeight = CONFIG.canvas.height - margin * 2;
+        
+        x = margin + Math.random() * spawnWidth;
+        y = margin + Math.random() * spawnHeight;
+        
+        console.log('[createEnemy] Spawning in field at:', x, y, 'margin:', margin);
     } else {
         // 从边缘生成（原逻辑）
         const side = Math.floor(Math.random() * 4);
@@ -168,6 +175,7 @@ function createEnemy(type) {
             case 2: x = Math.random() * CONFIG.canvas.width; y = CONFIG.canvas.height + 20; break;
             case 3: x = -20; y = Math.random() * CONFIG.canvas.height; break;
         }
+        console.log('[createEnemy] Spawning from edge at:', x, y, 'side:', side);
     }
     
     const now = Date.now();
@@ -1787,6 +1795,16 @@ function renderMeleeEnemy(enemy) {
     ctx.lineTo(-size, 0);
     ctx.closePath();
     ctx.fill();
+    
+    // 生成特效（淡入时显示光圈）
+    if (isEnemyInvincible(enemy)) {
+        ctx.globalAlpha = enemy.alpha * 0.5;
+        ctx.strokeStyle = '#0ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+    }
     
     ctx.restore();
 }
