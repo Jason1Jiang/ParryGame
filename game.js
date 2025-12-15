@@ -223,6 +223,25 @@ function createEnemy(type) {
     }
 }
 
+// 检查敌人是否无敌（刚生成时）
+function isEnemyInvincible(enemy) {
+    const now = Date.now();
+    const timeSinceSpawn = now - enemy.spawnTime;
+    return timeSinceSpawn < CONFIG.spawn.invincibleDuration;
+}
+
+// 更新敌人透明度（淡入效果）
+function updateEnemyAlpha(enemy) {
+    const now = Date.now();
+    const timeSinceSpawn = now - enemy.spawnTime;
+    
+    if (timeSinceSpawn < CONFIG.spawn.fadeInDuration) {
+        enemy.alpha = timeSinceSpawn / CONFIG.spawn.fadeInDuration;
+    } else {
+        enemy.alpha = 1;
+    }
+}
+
 // 视觉效果辅助函数
 function updateVisualEffects() {
     // 屏幕震动
@@ -666,9 +685,10 @@ function triggerMultiCounter() {
     const cfg = CONFIG.visual?.multiCounter;
     if (!cfg || !cfg.enabled || multiCounterActive) return;
     
-    // 找到最近的多个敌人
+    // 找到最近的多个敌人（排除无敌的敌人）
     const targets = [];
-    const sortedEnemies = enemies.slice().sort((a, b) => {
+    const validEnemies = enemies.filter(e => !isEnemyInvincible(e));
+    const sortedEnemies = validEnemies.slice().sort((a, b) => {
         const distA = Math.hypot(a.x - player.x, a.y - player.y);
         const distB = Math.hypot(b.x - player.x, b.y - player.y);
         return distA - distB;
@@ -1051,6 +1071,9 @@ function updateEnemies() {
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
         
+        // 更新透明度（淡入效果）
+        updateEnemyAlpha(enemy);
+        
         if (enemy.type === 'ranged') {
             updateRangedEnemy(enemy, now);
         } else {
@@ -1312,11 +1335,14 @@ function updateBullets() {
 
 // 触发反击
 function triggerCounter(meleeEnemy = null) {
-    // 找到最近的敌人
+    // 找到最近的敌人（排除无敌的敌人）
     let nearest = null;
     let minDist = Infinity;
     
     for (const enemy of enemies) {
+        // 跳过无敌的敌人
+        if (isEnemyInvincible(enemy)) continue;
+        
         const dx = enemy.x - player.x;
         const dy = enemy.y - player.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1651,6 +1677,9 @@ function renderRangedEnemy(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
     
+    // 应用透明度
+    ctx.globalAlpha = enemy.alpha;
+    
     if (enemy.state === 'aiming') {
         const aimProgress = (Date.now() - enemy.aimStartTime) / cfg.aimTime;
         
@@ -1681,6 +1710,16 @@ function renderRangedEnemy(enemy) {
     ctx.closePath();
     ctx.fill();
     
+    // 生成特效（淡入时显示光圈）
+    if (isEnemyInvincible(enemy)) {
+        ctx.globalAlpha = enemy.alpha * 0.5;
+        ctx.strokeStyle = '#0ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, enemy.size * 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    
     ctx.restore();
 }
 
@@ -1689,6 +1728,9 @@ function renderMeleeEnemy(enemy) {
     const cfg = CONFIG.enemies.melee;
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
+    
+    // 应用透明度
+    ctx.globalAlpha = enemy.alpha;
     
     if (enemy.state === 'warning') {
         const progress = (Date.now() - enemy.stateTime) / enemy.warningTime;
