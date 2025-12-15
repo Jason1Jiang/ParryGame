@@ -151,15 +151,27 @@ function createParticle() {
 
 // 创建敌人
 function createEnemy(type) {
-    const side = Math.floor(Math.random() * 4);
     let x, y;
     
-    switch(side) {
-        case 0: x = Math.random() * CONFIG.canvas.width; y = -20; break;
-        case 1: x = CONFIG.canvas.width + 20; y = Math.random() * CONFIG.canvas.height; break;
-        case 2: x = Math.random() * CONFIG.canvas.width; y = CONFIG.canvas.height + 20; break;
-        case 3: x = -20; y = Math.random() * CONFIG.canvas.height; break;
+    // 检查是否在场内生成
+    if (CONFIG.spawn.spawnInField) {
+        // 在场内随机位置生成，保持一定边距
+        const margin = CONFIG.spawn.spawnMargin;
+        x = margin + Math.random() * (CONFIG.canvas.width - margin * 2);
+        y = margin + Math.random() * (CONFIG.canvas.height - margin * 2);
+    } else {
+        // 从边缘生成（原逻辑）
+        const side = Math.floor(Math.random() * 4);
+        switch(side) {
+            case 0: x = Math.random() * CONFIG.canvas.width; y = -20; break;
+            case 1: x = CONFIG.canvas.width + 20; y = Math.random() * CONFIG.canvas.height; break;
+            case 2: x = Math.random() * CONFIG.canvas.width; y = CONFIG.canvas.height + 20; break;
+            case 3: x = -20; y = Math.random() * CONFIG.canvas.height; break;
+        }
     }
+    
+    const now = Date.now();
+    const spawnTime = now;
     
     if (type === 'ranged') {
         const cfg = CONFIG.enemies.ranged;
@@ -170,14 +182,16 @@ function createEnemy(type) {
             type: 'ranged',
             x, y,
             size: cfg.size,
-            lastShot: Date.now(),
+            lastShot: now,
             angle: 0,
             shootInterval: shootInterval,
             state: 'idle',
             aimStartTime: 0,
             movePattern: Math.random() * Math.PI * 2,
             moveSpeed: moveSpeed,
-            keepDistance: cfg.keepDistance + (Math.random() - 0.5) * cfg.keepDistanceVariance
+            keepDistance: cfg.keepDistance + (Math.random() - 0.5) * cfg.keepDistanceVariance,
+            spawnTime: spawnTime,
+            alpha: 0
         };
     } else {
         const cfg = CONFIG.enemies.melee;
@@ -202,7 +216,9 @@ function createEnemy(type) {
             cooldownTime: cooldownTime,
             dashDistance: dashDistance,
             speed: speed,
-            zigzagOffset: Math.random() * Math.PI * 2
+            zigzagOffset: Math.random() * Math.PI * 2,
+            spawnTime: spawnTime,
+            alpha: 0
         };
     }
 }
@@ -641,12 +657,8 @@ function checkMultiCounter() {
     const now = Date.now();
     const timeSinceKeyPress = now - blockKeyPressTime;
     
-    console.log('[checkMultiCounter] timeSinceKeyPress:', timeSinceKeyPress, 'timeWindow:', cfg.timeWindow, 'blockKeyPressTime:', blockKeyPressTime);
-    
     // 如果在按下格挡键的极短时间内成功格挡，触发多重反击
-    const result = timeSinceKeyPress < cfg.timeWindow && timeSinceKeyPress > 0;
-    console.log('[checkMultiCounter] result:', result);
-    return result;
+    return timeSinceKeyPress < cfg.timeWindow && timeSinceKeyPress > 0;
 }
 
 // 触发多重反击
@@ -671,7 +683,6 @@ function triggerMultiCounter() {
     // 激活多重反击
     multiCounterActive = true;
     multiCounterQueue = targets.slice();
-    console.log('[triggerMultiCounter] Activated, queue length:', multiCounterQueue.length, 'targets:', targets.map(t => t.type));
     
     // 超强视觉效果
     triggerFlash(2.0);
@@ -696,9 +707,7 @@ function triggerMultiCounter() {
 
 // 执行下一次多重反击
 function executeNextMultiCounter() {
-    console.log('[executeNextMultiCounter] queue length:', multiCounterQueue.length);
     if (multiCounterQueue.length === 0) {
-        console.log('[executeNextMultiCounter] Queue empty, resetting multi-counter state');
         multiCounterActive = false;
         player.isMultiCounter = false;
         return;
@@ -975,13 +984,10 @@ function updatePlayer() {
             
             // 如果是多重反击，继续下一个目标（或结束多重反击）
             if (player.isMultiCounter) {
-                console.log('[Counter Complete] Multi-counter, queue length:', multiCounterQueue.length);
                 const cfg = CONFIG.visual?.multiCounter;
                 setTimeout(() => {
                     executeNextMultiCounter();
                 }, cfg.delayBetweenCounters);
-            } else {
-                console.log('[Counter Complete] Normal counter finished');
             }
         } else {
             // 插值移动
@@ -1260,15 +1266,12 @@ function updateBullets() {
         const dist = Math.sqrt(dx * dx + dy * dy);
         
         if (dist < player.radius + bullet.radius) {
-            console.log('[Bullet Hit] blocking:', player.blocking, 'counterAttacking:', player.counterAttacking, 'multiCounterActive:', multiCounterActive);
             if (player.blocking && !player.counterAttacking) {
-                console.log('[Bullet Block Success]');
                 // 格挡成功
                 bullets.splice(i, 1);
                 
                 // 检查是否触发多重反击（只有在没有进行多重反击时才检查）
                 const isMulti = !multiCounterActive && checkMultiCounter();
-                console.log('[Block] isMulti:', isMulti, 'multiCounterActive:', multiCounterActive);
                 
                 if (isMulti) {
                     // 多重反击效果
