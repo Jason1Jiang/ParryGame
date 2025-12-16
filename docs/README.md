@@ -12,6 +12,47 @@
   - 视觉效果规划
   - 能量系统设计
 
+## 🎮 游戏玩法文档 (`gameplay/`)
+
+刷怪系统和游戏机制的详细文档。
+
+- **[SPAWN_SYSTEM_v2.9.md](gameplay/SPAWN_SYSTEM_v2.9.md)** - v2.9 调试界面与难度预设 ⚙️
+  - 实时调试界面
+  - 三种难度预设（硬核/平衡/休闲）
+  - 可视化数据反馈
+  
+- **[SPAWN_SYSTEM_v2.8.md](gameplay/SPAWN_SYSTEM_v2.8.md)** - v2.8 动态节奏调整 ⚡
+  - 击杀速度追踪系统
+  - 连击加速系统
+  - 敌人数量控制
+  - 自适应难度
+  
+- **[SPAWN_SYSTEM_v2.7.md](gameplay/SPAWN_SYSTEM_v2.7.md)** - v2.7 场内生成与特效 ✨
+  - 场内生成系统
+  - 淡入效果和无敌时间
+  - 生成特效（粒子、冲击波、音效）
+  
+- **[SPAWN_SYSTEM_v2.6.md](gameplay/SPAWN_SYSTEM_v2.6.md)** - v2.6 场内生成基础
+  - 场内随机位置生成
+  - 智能避让系统
+  
+- **[SPAWN_RHYTHM_OPTIMIZATION.md](gameplay/SPAWN_RHYTHM_OPTIMIZATION.md)** - 刷怪节奏优化方案
+  - 动态刷怪设计思路
+  - 参数调整建议
+  
+- **[SPAWN_QUICK_GUIDE.md](gameplay/SPAWN_QUICK_GUIDE.md)** - 刷怪系统快速指南
+  - 系统概览
+  - 配置说明
+  
+- **[DEBUG_GUIDE.md](gameplay/DEBUG_GUIDE.md)** - 调试界面使用指南 🔧
+  - 调试数据说明
+  - 实战案例分析
+  - 优化建议
+  
+- **[QUICK_TEST_v2.9.md](gameplay/QUICK_TEST_v2.9.md)** - v2.9 功能测试清单
+  - 完整测试步骤
+  - 预期结果验证
+
 ## 🎨 视觉更新文档 (`visual-updates/`)
 
 按版本记录的视觉效果优化和新功能实现。
@@ -78,10 +119,21 @@
   - 淡入动画效果
   - 无敌时间机制
 
-- **[SPAWN_SYSTEM_v2.7.md](gameplay/SPAWN_SYSTEM_v2.7.md)** - 刷怪系统优化 v2.7 🆕
+- **[SPAWN_SYSTEM_v2.7.md](gameplay/SPAWN_SYSTEM_v2.7.md)** - 刷怪系统优化 v2.7
   - 生成位置避开玩家
   - 生成粒子特效
   - 生成音效
+
+- **[SPAWN_SYSTEM_v2.8.md](gameplay/SPAWN_SYSTEM_v2.8.md)** - 刷怪系统优化 v2.8
+  - 动态节奏调整（混合方案）
+  - 击杀速度追踪系统
+  - 连击加速系统
+  - 敌人数量控制系统
+
+- **[SPAWN_SYSTEM_v2.9.md](gameplay/SPAWN_SYSTEM_v2.9.md)** - 刷怪系统优化 v2.9 🆕
+  - 实时调试界面
+  - 难度选择系统
+  - 配置预设管理
 
 ## 📚 参考文档 (`reference/`)
 
@@ -144,5 +196,5 @@ docs/
 
 ---
 
-**最后更新**: 2025-12-15  
-**当前版本**: v2.7 (刷怪系统 - 生成特效与智能定位)
+**最后更新**: 2025-12-17  
+**当前版本**: v2.9 (刷怪系统 - 调试界面与难度预设)
