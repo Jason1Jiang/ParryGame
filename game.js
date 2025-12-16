@@ -10,6 +10,13 @@ let energy, kills, gameTime, startTime;
 let lastEnemySpawn = 0;
 let enemySpawnInterval = 2000;
 
+// 动态刷怪系统
+let recentKillTimes = [];        // 最近击杀的时间戳
+let recentKillIntervals = [];    // 最近击杀的间隔
+let avgKillInterval = 2000;      // 平均击杀间隔
+let dynamicSpawnInterval = 1500; // 动态计算的刷怪间隔
+let targetEnemyCount = 4;        // 目标敌人数量
+
 // 视觉效果状态
 let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
 let timeScale = 1;
@@ -98,6 +105,13 @@ function startGame() {
     startTime = Date.now();
     lastEnemySpawn = 0;
     enemySpawnInterval = CONFIG.spawn.initialInterval;
+    
+    // 重置动态刷怪系统
+    recentKillTimes = [];
+    recentKillIntervals = [];
+    avgKillInterval = CONFIG.spawn.initialInterval;
+    dynamicSpawnInterval = CONFIG.spawn.initialInterval;
+    targetEnemyCount = CONFIG.spawn.dynamicSpawn?.enemyCountControl?.baseTarget || 4;
     
     // 初始化玩家
     player = {
@@ -371,6 +385,131 @@ function updateEnemyAlpha(enemy) {
     } else {
         enemy.alpha = 1;
     }
+}
+
+// 动态刷怪系统函数
+
+// 记录击杀
+function recordKill() {
+    const now = Date.now();
+    recentKillTimes.push(now);
+    
+    // 计算间隔
+    if (recentKillTimes.length >= 2) {
+        const interval = now - recentKillTimes[recentKillTimes.length - 2];
+        recentKillIntervals.push(interval);
+    }
+    
+    // 只保留最近N次
+    const cfg = CONFIG.spawn.dynamicSpawn;
+    if (cfg && cfg.killTracking) {
+        const trackCount = cfg.killTracking.trackCount;
+        if (recentKillTimes.length > trackCount) {
+            recentKillTimes.shift();
+        }
+        if (recentKillIntervals.length > trackCount) {
+            recentKillIntervals.shift();
+        }
+    }
+    
+    // 更新平均值
+    updateAvgKillInterval();
+}
+
+// 更新平均击杀间隔
+function updateAvgKillInterval() {
+    if (recentKillIntervals.length === 0) return;
+    
+    const sum = recentKillIntervals.reduce((a, b) => a + b, 0);
+    avgKillInterval = sum / recentKillIntervals.length;
+}
+
+// 获取连击倍率
+function getComboMultiplier(combo) {
+    const cfg = CONFIG.spawn.dynamicSpawn?.comboBoost;
+    if (!cfg || !cfg.enabled) return 1.0;
+    
+    const thresholds = cfg.thresholds;
+    const multipliers = cfg.multipliers;
+    
+    for (let i = thresholds.length - 1; i >= 0; i--) {
+        if (combo >= thresholds[i]) {
+            return multipliers[i];
+        }
+    }
+    
+    return 1.0;
+}
+
+// 获取敌人数量倍率
+function getEnemyCountMultiplier() {
+    const cfg = CONFIG.spawn.dynamicSpawn?.enemyCountControl;
+    if (!cfg || !cfg.enabled) return 1.0;
+    
+    // 更新目标敌人数量
+    targetEnemyCount = Math.min(
+        cfg.maxTarget,
+        cfg.baseTarget + gameTime * cfg.increasePerSecond
+    );
+    
+    const currentCount = enemies.length;
+    const diff = currentCount - targetEnemyCount;
+    
+    if (diff < -2) {
+        // 敌人太少，加快刷怪
+        return cfg.underflowMultiplier;
+    } else if (diff > 3) {
+        // 敌人太多，减缓刷怪
+        return cfg.overflowMultiplier;
+    }
+    
+    return 1.0;
+}
+
+// 计算动态刷怪间隔
+function calculateDynamicSpawnInterval() {
+    const cfg = CONFIG.spawn.dynamicSpawn;
+    
+    // 检查是否启用
+    if (!cfg || !cfg.enabled) {
+        return CONFIG.spawn.initialInterval;
+    }
+    
+    // 检查是否达到启动条件
+    if (cfg.killTracking && kills < cfg.killTracking.kickInKills) {
+        return CONFIG.spawn.initialInterval;
+    }
+    
+    let interval = CONFIG.spawn.initialInterval;
+    
+    // 1. 基于击杀速度
+    if (cfg.killTracking?.enabled && recentKillIntervals.length > 0) {
+        interval = avgKillInterval * cfg.killTracking.adjustFactor;
+    }
+    
+    // 2. 连击加成
+    if (cfg.comboBoost?.enabled) {
+        const multiplier = getComboMultiplier(comboCount);
+        interval *= multiplier;
+    }
+    
+    // 3. 敌人数量修正
+    if (cfg.enemyCountControl?.enabled) {
+        const countMultiplier = getEnemyCountMultiplier();
+        interval *= countMultiplier;
+    }
+    
+    // 4. 平滑过渡
+    if (cfg.killTracking?.smoothing) {
+        const smoothing = cfg.killTracking.smoothing;
+        dynamicSpawnInterval += (interval - dynamicSpawnInterval) * smoothing;
+        interval = dynamicSpawnInterval;
+    }
+    
+    // 5. 限制范围
+    const minInterval = CONFIG.spawn.minInterval || 400;
+    const maxInterval = CONFIG.spawn.maxInterval || 2500;
+    return Math.max(minInterval, Math.min(maxInterval, interval));
 }
 
 // 视觉效果辅助函数
@@ -1033,13 +1172,12 @@ function update() {
         enemies.push(newEnemy);
         
         // 生成特效
-        createSpawnEffect(newEnemy.x, newEnemy.y);
+        createSpawnEffect(newEnemy.x, newEnemy.y, type);
         
         lastEnemySpawn = now;
-        enemySpawnInterval = Math.max(
-            CONFIG.spawn.minInterval, 
-            CONFIG.spawn.initialInterval - gameTime * CONFIG.spawn.intervalDecreasePerSecond
-        );
+        
+        // 使用动态刷怪间隔
+        enemySpawnInterval = calculateDynamicSpawnInterval();
     }
     
     // 更新敌人
@@ -1099,6 +1237,9 @@ function updatePlayer() {
                 enemies.splice(index, 1);
                 kills++;
                 energy = Math.min(CONFIG.energy.max, energy + CONFIG.energy.killRestore);
+                
+                // 记录击杀（动态刷怪系统）
+                recordKill();
                 
                 // 连击系统
                 comboCount++;
