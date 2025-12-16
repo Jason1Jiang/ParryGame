@@ -71,12 +71,12 @@
     "color": "#f55"
   },
   "spawn": {
-    "initialInterval": 1500,        // 【基础刷怪速度】初始刷怪间隔(毫秒) - 越小越快 (推荐: 1000-2000)
-    "minInterval": 400,              // 【最快速度】最小刷怪间隔(毫秒) - 刷怪速度上限 (推荐: 300-600)
-    "maxInterval": 2500,             // 【最慢速度】最大刷怪间隔(毫秒) - 刷怪速度下限 (推荐: 2000-3500)
-    "intervalDecreasePerSecond": 0,  // 固定递减(已禁用) - 设为0使用动态系统
-    "meleeStartTime": 20,            // 【近战出现时间】多少秒后开始出现近战敌人 (推荐: 15-30)
-    "meleeSpawnChance": 0.35,        // 【近战概率】近战敌人生成概率 0-1 (推荐: 0.3-0.5)
+    "initialInterval": 1500,
+    "minInterval": 400,
+    "maxInterval": 2500,
+    "intervalDecreasePerSecond": 0,
+    "meleeStartTime": 20,
+    "meleeSpawnChance": 0.35,
     "spawnInField": true,
     "fadeInDuration": 500,
     "invincibleDuration": 800,
@@ -90,28 +90,27 @@
     "warningDuration": 1000,
     "warningFadeIn": 300,
     "dynamicSpawn": {
-      "enabled": true,               // 【动态刷怪总开关】true=启用动态 false=使用固定速度
+      "enabled": true,
       "mode": "hybrid",
       "killTracking": {
-        "enabled": true,             // 【击杀追踪开关】根据击杀速度调整刷怪
-        "trackCount": 5,             // 追踪最近几次击杀 (推荐: 3-7)
-        "adjustFactor": 0.75,        // 【刷怪速度系数】刷怪间隔=击杀间隔×此值 (越小越快, 推荐: 0.6-0.9)
-        "smoothing": 0.25,           // 平滑过渡 0-1 (越大变化越慢, 推荐: 0.2-0.4)
-        "kickInKills": 3             // 击杀几次后启用 (推荐: 2-5)
+        "enabled": true,
+        "trackCount": 5,
+        "adjustFactor": 0.75,
+        "smoothing": 0.25,
+        "kickInKills": 3
       },
       "comboBoost": {
-        "enabled": true,             // 【连击加速开关】连击越高刷怪越快
-        "thresholds": [3, 5, 10, 15],     // 【连击阈值】达到这些连击数时触发加速
-        "multipliers": [0.9, 0.85, 0.8, 0.75]  // 【加速倍率】对应的刷怪间隔倍率 (越小越快)
-        // 示例: 10连击时 刷怪间隔×0.6 = 刷怪速度提升67%
+        "enabled": true,
+        "thresholds": [3, 5, 10, 15],
+        "multipliers": [0.9, 0.85, 0.8, 0.75]
       },
       "enemyCountControl": {
-        "enabled": true,             // 【敌人数量控制开关】维持场上敌人数量
-        "baseTarget": 4,             // 【初始目标数量】游戏开始时的目标敌人数 (推荐: 3-6)
-        "increasePerSecond": 0.1,    // 【数量增长速度】每秒增加多少个 (推荐: 0.05-0.15)
-        "maxTarget": 10,             // 【最大目标数量】场上敌人数量上限 (推荐: 10-15)
-        "underflowMultiplier": 0.7,  // 敌人不足时加速倍率 (越小越快)
-        "overflowMultiplier": 1.3    // 敌人过多时减速倍率 (越大越慢)
+        "enabled": true,
+        "baseTarget": 4,
+        "increasePerSecond": 0.1,
+        "maxTarget": 10,
+        "underflowMultiplier": 0.7,
+        "overflowMultiplier": 1.3
       }
     },
     "typeSpecificEffects": {
