@@ -269,6 +269,15 @@ async function init() {
     // 加载配置
     await loadConfig();
     
+    // 初始化菜单粒子
+    particles = [];
+    for (let i = 0; i < CONFIG.particles.count; i++) {
+        particles.push(createParticle());
+    }
+    
+    // 启动菜单粒子循环
+    menuParticleLoop();
+    
     // 键盘事件
     document.addEventListener('keydown', (e) => {
         keys[e.key.toLowerCase()] = true;
@@ -301,6 +310,25 @@ async function init() {
     canvas.addEventListener('mouseleave', () => {
         keys[' '] = false;
     });
+}
+
+// 菜单粒子循环（在主界面显示粒子）
+function menuParticleLoop() {
+    // 如果游戏正在进行，不渲染菜单粒子
+    if (gameState === 'playing') {
+        requestAnimationFrame(menuParticleLoop);
+        return;
+    }
+    
+    // 清空画布
+    ctx.fillStyle = CONFIG.visual.background.backgroundColor;
+    ctx.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
+    
+    // 更新和渲染粒子
+    updateParticles();
+    renderParticles();
+    
+    requestAnimationFrame(menuParticleLoop);
 }
 
 // 开始游戏
