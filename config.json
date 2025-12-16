@@ -81,9 +81,27 @@
     "invincibleDuration": 800,
     "spawnMargin": 100,
     "minDistanceFromPlayer": 200,
+    "minDistanceBetweenEnemies": 120,
     "spawnParticles": 30,
     "spawnParticleSpeed": 8,
-    "spawnSound": true
+    "spawnSound": true,
+    "warningEnabled": true,
+    "warningDuration": 1000,
+    "warningFadeIn": 300,
+    "typeSpecificEffects": {
+      "ranged": {
+        "particleColor": "#f55",
+        "shockwaveColor": "#f55",
+        "soundFrequencyStart": 800,
+        "soundFrequencyEnd": 300
+      },
+      "melee": {
+        "particleColor": "#fa0",
+        "shockwaveColor": "#fa0",
+        "soundFrequencyStart": 1000,
+        "soundFrequencyEnd": 500
+      }
+    }
   },
   "counter": {
     "speed": 0.15,

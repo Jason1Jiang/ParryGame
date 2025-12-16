@@ -29,6 +29,7 @@ let blockKeyPressTime = 0; // 格挡键按下时间
 let multiCounterQueue = []; // 多重反击队列
 let multiCounterActive = false; // 多重反击是否激活
 let wasPressingBlockKeyLastFrame = false; // 上一帧是否按着格挡键
+let spawnWarnings = []; // 生成预警
 
 // 加载配置
 async function loadConfig() {
@@ -59,6 +60,24 @@ async function init() {
     });
     document.addEventListener('keyup', (e) => {
         keys[e.key.toLowerCase()] = false;
+    });
+    
+    // 鼠标事件 - 左键作为格挡
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.button === 0) { // 左键
+            keys[' '] = true;
+            e.preventDefault();
+        }
+    });
+    canvas.addEventListener('mouseup', (e) => {
+        if (e.button === 0) { // 左键
+            keys[' '] = false;
+            e.preventDefault();
+        }
+    });
+    // 防止鼠标移出canvas时格挡状态卡住
+    canvas.addEventListener('mouseleave', () => {
+        keys[' '] = false;
     });
 }
 
@@ -157,31 +176,51 @@ function createEnemy(type) {
     
     // 检查是否在场内生成
     if (CONFIG.spawn.spawnInField) {
-        // 在场内随机位置生成，保持一定边距，并避开玩家
+        // 在场内随机位置生成，保持一定边距，并避开玩家和其他敌人
         const margin = Math.min(CONFIG.spawn.spawnMargin, CONFIG.canvas.width / 4, CONFIG.canvas.height / 4);
         const spawnWidth = CONFIG.canvas.width - margin * 2;
         const spawnHeight = CONFIG.canvas.height - margin * 2;
-        const minDist = CONFIG.spawn.minDistanceFromPlayer;
+        const minDistFromPlayer = CONFIG.spawn.minDistanceFromPlayer;
+        const minDistBetweenEnemies = CONFIG.spawn.minDistanceBetweenEnemies || 100;
         
-        // 尝试找到远离玩家的位置（最多尝试10次）
+        // 尝试找到合适的位置（最多尝试20次）
         let attempts = 0;
         let validPosition = false;
         
-        while (attempts < 10 && !validPosition) {
+        while (attempts < 20 && !validPosition) {
             x = margin + Math.random() * spawnWidth;
             y = margin + Math.random() * spawnHeight;
             
-            const dx = x - player.x;
-            const dy = y - player.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            // 检查与玩家的距离
+            const dxPlayer = x - player.x;
+            const dyPlayer = y - player.y;
+            const distToPlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer);
             
-            if (dist >= minDist) {
+            if (distToPlayer < minDistFromPlayer) {
+                attempts++;
+                continue;
+            }
+            
+            // 检查与其他敌人的距离（避免扎堆）
+            let tooClose = false;
+            for (const enemy of enemies) {
+                const dxEnemy = x - enemy.x;
+                const dyEnemy = y - enemy.y;
+                const distToEnemy = Math.sqrt(dxEnemy * dxEnemy + dyEnemy * dyEnemy);
+                
+                if (distToEnemy < minDistBetweenEnemies) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            
+            if (!tooClose) {
                 validPosition = true;
             }
             attempts++;
         }
         
-        // 如果10次都没找到合适位置，使用最后一次的位置
+        // 如果20次都没找到合适位置，使用最后一次的位置
         if (!validPosition) {
             x = margin + Math.random() * spawnWidth;
             y = margin + Math.random() * spawnHeight;
@@ -250,11 +289,15 @@ function createEnemy(type) {
     }
 }
 
-// 创建生成特效
-function createSpawnEffect(x, y) {
+// 创建生成特效（根据敌人类型）
+function createSpawnEffect(x, y, type) {
+    const typeEffects = CONFIG.spawn.typeSpecificEffects;
+    const effectCfg = typeEffects && typeEffects[type] ? typeEffects[type] : null;
+    
     // 粒子爆发
     const particleCount = CONFIG.spawn.spawnParticles;
     const speed = CONFIG.spawn.spawnParticleSpeed;
+    const particleColor = effectCfg ? effectCfg.particleColor : '#0ff';
     
     for (let i = 0; i < particleCount; i++) {
         const angle = (Math.PI * 2 * i) / particleCount;
@@ -265,7 +308,7 @@ function createSpawnEffect(x, y) {
             vy: Math.sin(angle) * speed,
             size: Math.random() * 2 + 1,
             alpha: 1,
-            color: '#0ff',
+            color: particleColor,
             life: 30
         };
         
@@ -275,11 +318,12 @@ function createSpawnEffect(x, y) {
     }
     
     // 冲击波
-    createShockwave(x, y, 80, '#0ff');
+    const shockwaveColor = effectCfg ? effectCfg.shockwaveColor : '#0ff';
+    createShockwave(x, y, 80, shockwaveColor);
     
     // 音效
     if (CONFIG.spawn.spawnSound) {
-        playSpawnSound();
+        playSpawnSound(type);
     }
 }
 
