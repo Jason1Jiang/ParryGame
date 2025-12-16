@@ -119,6 +119,125 @@
         #startScreen button:hover {
             background: #0cf;
         }
+        #difficultySelect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border: 3px solid #0af;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            display: none;
+        }
+        #difficultySelect h1 {
+            font-size: 48px;
+            margin-bottom: 30px;
+            color: #0cf;
+        }
+        .difficulty-option {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(0, 170, 255, 0.1);
+            border: 2px solid #0af;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .difficulty-option:hover {
+            background: rgba(0, 170, 255, 0.3);
+            border-color: #0cf;
+            transform: scale(1.05);
+        }
+        .difficulty-option h2 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .difficulty-option p {
+            font-size: 16px;
+            color: #aaa;
+            margin: 5px 0;
+        }
+        .difficulty-hardcore { border-color: #f00; }
+        .difficulty-hardcore:hover { border-color: #f55; background: rgba(255, 0, 0, 0.2); }
+        .difficulty-balanced { border-color: #0af; }
+        .difficulty-balanced:hover { border-color: #0cf; background: rgba(0, 170, 255, 0.3); }
+        .difficulty-casual { border-color: #0f0; }
+        .difficulty-casual:hover { border-color: #5f5; background: rgba(0, 255, 0, 0.2); }
+        #debugPanel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border: 2px solid #0af;
+            border-radius: 8px;
+            color: #0cf;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-width: 280px;
+            display: none;
+        }
+        #debugPanel h3 {
+            margin-bottom: 10px;
+            color: #fff;
+            font-size: 16px;
+            border-bottom: 1px solid #0af;
+            padding-bottom: 5px;
+        }
+        #debugPanel .debug-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 3px 0;
+        }
+        #debugPanel .debug-label {
+            color: #aaa;
+        }
+        #debugPanel .debug-value {
+            color: #0ff;
+            font-weight: bold;
+        }
+        #debugPanel .debug-value.warning {
+            color: #fa0;
+        }
+        #debugPanel .debug-value.danger {
+            color: #f55;
+        }
+        #debugPanel .debug-value.good {
+            color: #5f5;
+        }
+        #debugToggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 15px;
+            background: rgba(0, 170, 255, 0.3);
+            border: 2px solid #0af;
+            border-radius: 5px;
+            color: #0cf;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+        #debugToggle:hover {
+            background: rgba(0, 170, 255, 0.5);
+        }
+        #backButton {
+            margin-top: 30px;
+            padding: 10px 30px;
+            font-size: 18px;
+            background: #555;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        #backButton:hover {
+            background: #777;
+        }
     </style>
 </head>
 <body>
@@ -132,12 +251,70 @@
             <div>时间: <span id="time">0</span>s</div>
         </div>
     </div>
+    <div id="debugToggle" onclick="toggleDebug()">调试 [F3]</div>
+    <div id="debugPanel">
+        <h3>⚙️ 刷怪系统调试</h3>
+        <div class="debug-row">
+            <span class="debug-label">刷怪间隔:</span>
+            <span class="debug-value" id="debugSpawnInterval">0ms</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">平均击杀:</span>
+            <span class="debug-value" id="debugAvgKill">0ms</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">当前连击:</span>
+            <span class="debug-value" id="debugCombo">0x</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">连击倍率:</span>
+            <span class="debug-value" id="debugComboMult">1.0x</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">场上敌人:</span>
+            <span class="debug-value" id="debugEnemyCount">0</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">目标数量:</span>
+            <span class="debug-value" id="debugTargetCount">0</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">数量倍率:</span>
+            <span class="debug-value" id="debugCountMult">1.0x</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">难度模式:</span>
+            <span class="debug-value" id="debugDifficulty">平衡</span>
+        </div>
+    </div>
     <div id="startScreen">
         <h1>格挡反击</h1>
         <p>WASD - 移动</p>
         <p>空格 / 鼠标左键 - 格挡</p>
         <p>格挡成功后自动反击最近的敌人</p>
-        <button onclick="startGame()">开始游戏</button>
+        <button onclick="showDifficultySelect()">开始游戏</button>
+    </div>
+    <div id="difficultySelect">
+        <h1>选择难度</h1>
+        <div class="difficulty-option difficulty-hardcore" onclick="selectDifficulty('hardcore')">
+            <h2>⚡⚡⚡ 硬核模式</h2>
+            <p>刷怪速度: 极快 (300-1000ms)</p>
+            <p>最大敌人: 15个</p>
+            <p>适合: 高手玩家，追求极限挑战</p>
+        </div>
+        <div class="difficulty-option difficulty-balanced" onclick="selectDifficulty('balanced')">
+            <h2>⚡⚡ 平衡模式</h2>
+            <p>刷怪速度: 快速 (400-2500ms)</p>
+            <p>最大敌人: 12个</p>
+            <p>适合: 大多数玩家，快节奏战斗</p>
+        </div>
+        <div class="difficulty-option difficulty-casual" onclick="selectDifficulty('casual')">
+            <h2>🌙 休闲模式</h2>
+            <p>刷怪速度: 适中 (1000-3500ms)</p>
+            <p>最大敌人: 8个</p>
+            <p>适合: 新手玩家，轻松体验</p>
+        </div>
+        <button id="backButton" onclick="backToStart()">返回</button>
     </div>
     <div id="gameOver">
         <h1>游戏结束</h1>
