@@ -2147,8 +2147,22 @@ function renderPlayer() {
         ctx.globalAlpha = 1;
     }
     
-    // 玩家本体
-    ctx.fillStyle = CONFIG.player.color;
+    // 玩家本体 - 深棕色圆形带柔和阴影
+    // 外层柔和阴影
+    const shadowGradient = ctx.createRadialGradient(
+        player.x, player.y, player.radius * 0.7,
+        player.x, player.y, player.radius * 2
+    );
+    shadowGradient.addColorStop(0, 'rgba(80, 70, 60, 0)');
+    shadowGradient.addColorStop(0.5, 'rgba(80, 70, 60, 0.3)');
+    shadowGradient.addColorStop(1, 'rgba(80, 70, 60, 0)');
+    ctx.fillStyle = shadowGradient;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius * 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 主体 - 深棕/灰褐色
+    ctx.fillStyle = '#8B7355';
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
     ctx.fill();
