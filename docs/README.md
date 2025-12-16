@@ -73,10 +73,15 @@
 
 游戏玩法和系统机制的优化文档。
 
-- **[SPAWN_SYSTEM_v2.6.md](gameplay/SPAWN_SYSTEM_v2.6.md)** - 刷怪系统优化
+- **[SPAWN_SYSTEM_v2.6.md](gameplay/SPAWN_SYSTEM_v2.6.md)** - 刷怪系统优化 v2.6
   - 场内随机生成
   - 淡入动画效果
   - 无敌时间机制
+
+- **[SPAWN_SYSTEM_v2.7.md](gameplay/SPAWN_SYSTEM_v2.7.md)** - 刷怪系统优化 v2.7 🆕
+  - 生成位置避开玩家
+  - 生成粒子特效
+  - 生成音效
 
 ## 📚 参考文档 (`reference/`)
 
@@ -140,4 +145,4 @@ docs/
 ---
 
 **最后更新**: 2025-12-15  
-**当前版本**: v2.5.2 (Bug 修复 - 连续格挡反击)
+**当前版本**: v2.7 (刷怪系统 - 生成特效与智能定位)

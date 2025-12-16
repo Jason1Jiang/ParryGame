@@ -155,19 +155,37 @@ function createParticle() {
 function createEnemy(type) {
     let x, y;
     
-    console.log('[createEnemy] spawnInField:', CONFIG.spawn.spawnInField);
-    
     // 检查是否在场内生成
     if (CONFIG.spawn.spawnInField) {
-        // 在场内随机位置生成，保持一定边距
+        // 在场内随机位置生成，保持一定边距，并避开玩家
         const margin = Math.min(CONFIG.spawn.spawnMargin, CONFIG.canvas.width / 4, CONFIG.canvas.height / 4);
         const spawnWidth = CONFIG.canvas.width - margin * 2;
         const spawnHeight = CONFIG.canvas.height - margin * 2;
+        const minDist = CONFIG.spawn.minDistanceFromPlayer;
         
-        x = margin + Math.random() * spawnWidth;
-        y = margin + Math.random() * spawnHeight;
+        // 尝试找到远离玩家的位置（最多尝试10次）
+        let attempts = 0;
+        let validPosition = false;
         
-        console.log('[createEnemy] Spawning in field at:', x, y, 'margin:', margin);
+        while (attempts < 10 && !validPosition) {
+            x = margin + Math.random() * spawnWidth;
+            y = margin + Math.random() * spawnHeight;
+            
+            const dx = x - player.x;
+            const dy = y - player.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist >= minDist) {
+                validPosition = true;
+            }
+            attempts++;
+        }
+        
+        // 如果10次都没找到合适位置，使用最后一次的位置
+        if (!validPosition) {
+            x = margin + Math.random() * spawnWidth;
+            y = margin + Math.random() * spawnHeight;
+        }
     } else {
         // 从边缘生成（原逻辑）
         const side = Math.floor(Math.random() * 4);
@@ -177,7 +195,6 @@ function createEnemy(type) {
             case 2: x = Math.random() * CONFIG.canvas.width; y = CONFIG.canvas.height + 20; break;
             case 3: x = -20; y = Math.random() * CONFIG.canvas.height; break;
         }
-        console.log('[createEnemy] Spawning from edge at:', x, y, 'side:', side);
     }
     
     const now = Date.now();
@@ -230,6 +247,66 @@ function createEnemy(type) {
             spawnTime: spawnTime,
             alpha: 0
         };
+    }
+}
+
+// 创建生成特效
+function createSpawnEffect(x, y) {
+    // 粒子爆发
+    const particleCount = CONFIG.spawn.spawnParticles;
+    const speed = CONFIG.spawn.spawnParticleSpeed;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const angle = (Math.PI * 2 * i) / particleCount;
+        const particle = {
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: Math.random() * 2 + 1,
+            alpha: 1,
+            color: '#0ff',
+            life: 30
+        };
+        
+        // 添加到粒子数组（需要标记为临时粒子）
+        particle.isSpawnParticle = true;
+        particles.push(particle);
+    }
+    
+    // 冲击波
+    createShockwave(x, y, 80, '#0ff');
+    
+    // 音效
+    if (CONFIG.spawn.spawnSound) {
+        playSpawnSound();
+    }
+}
+
+// 播放生成音效
+function playSpawnSound() {
+    if (!audioContext || !CONFIG.visual?.audio?.enabled) return;
+    
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // 从高频到低频的下降音效
+        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.2);
+        oscillator.type = 'sine';
+        
+        const volume = CONFIG.visual.audio.volume * 0.3; // 生成音效音量较小
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (e) {
+        console.warn('Error playing spawn sound:', e);
     }
 }
 
@@ -908,7 +985,12 @@ function update() {
     // 生成敌人
     if (now - lastEnemySpawn > enemySpawnInterval) {
         const type = (gameTime > CONFIG.spawn.meleeStartTime && Math.random() < CONFIG.spawn.meleeSpawnChance) ? 'melee' : 'ranged';
-        enemies.push(createEnemy(type));
+        const newEnemy = createEnemy(type);
+        enemies.push(newEnemy);
+        
+        // 生成特效
+        createSpawnEffect(newEnemy.x, newEnemy.y);
+        
         lastEnemySpawn = now;
         enemySpawnInterval = Math.max(
             CONFIG.spawn.minInterval, 
@@ -1390,24 +1472,39 @@ function getEnhancedParticleCount() {
 
 // 更新粒子
 function updateParticles() {
-    for (const p of particles) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
         
-        // 边界循环
-        if (p.x < 0) p.x = CONFIG.canvas.width;
-        if (p.x > CONFIG.canvas.width) p.x = 0;
-        if (p.y < 0) p.y = CONFIG.canvas.height;
-        if (p.y > CONFIG.canvas.height) p.y = 0;
-        
-        // 速度衰减
-        p.vx *= 0.99;
-        p.vy *= 0.99;
-        
-        // 恢复基础速度
-        if (Math.abs(p.vx) < CONFIG.particles.baseSpeed && Math.abs(p.vy) < CONFIG.particles.baseSpeed) {
-            p.vx += (Math.random() - 0.5) * 0.05;
-            p.vy += (Math.random() - 0.5) * 0.05;
+        // 生成粒子特殊处理
+        if (p.isSpawnParticle) {
+            p.life--;
+            p.alpha = p.life / 30;
+            p.vx *= 0.95;
+            p.vy *= 0.95;
+            
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+                continue;
+            }
+        } else {
+            // 普通粒子
+            // 边界循环
+            if (p.x < 0) p.x = CONFIG.canvas.width;
+            if (p.x > CONFIG.canvas.width) p.x = 0;
+            if (p.y < 0) p.y = CONFIG.canvas.height;
+            if (p.y > CONFIG.canvas.height) p.y = 0;
+            
+            // 速度衰减
+            p.vx *= 0.99;
+            p.vy *= 0.99;
+            
+            // 恢复基础速度
+            if (Math.abs(p.vx) < CONFIG.particles.baseSpeed && Math.abs(p.vy) < CONFIG.particles.baseSpeed) {
+                p.vx += (Math.random() - 0.5) * 0.05;
+                p.vy += (Math.random() - 0.5) * 0.05;
+            }
         }
     }
 }
