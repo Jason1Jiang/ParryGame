@@ -17,13 +17,13 @@
     "killRestore": 18
   },
   "particles": {
-    "count": 300,
+    "count": 1000,
     "baseSpeed": 0.2,
-    "colors": ["#4488ff", "#8844ff"],
-    "minAlpha": 0.1,
-    "maxAlpha": 0.3,
-    "minSize": 0.5,
-    "maxSize": 1.5
+    "colors": ["#999999"],
+    "minAlpha": 0.3,
+    "maxAlpha": 0.6,
+    "minSize": 1,
+    "maxSize": 3
   },
   "enemies": {
     "ranged": {
@@ -254,7 +254,7 @@
     },
     "background": {
       "gradient": false,
-      "backgroundColor": "#000000",
+      "backgroundColor": "#FFFFFF",
       "gradientColors": ["#000428", "#004e92", "#000000"],
       "vignette": false,
       "vignetteStrength": 0.2
