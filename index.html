@@ -11,17 +11,17 @@
             box-sizing: border-box;
         }
         body {
-            background: #000;
+            background: #F5F5F5;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', 'Microsoft YaHei', sans-serif;
             overflow: hidden;
         }
         #gameCanvas {
-            border: 2px solid #333;
-            background: #0a0a0a;
+            border: 1px solid #000;
+            background: #F5F5F5;
         }
         #ui {
             position: absolute;
@@ -29,14 +29,14 @@
             left: 50%;
             transform: translateX(-50%);
             width: 800px;
-            color: white;
+            color: #000;
         }
         #energyBar {
             width: 100%;
             height: 20px;
-            background: #222;
-            border: 2px solid #444;
-            border-radius: 10px;
+            background: transparent;
+            border: 1px solid #000;
+            border-radius: 20px;
             overflow: hidden;
             margin-bottom: 10px;
         }
@@ -44,6 +44,7 @@
             height: 100%;
             background: linear-gradient(90deg, #000, #666);
             transition: width 0.1s, background 0.3s;
+            border-radius: 18px;
         }
         #energyFill.low {
             background: linear-gradient(90deg, #999, #CCC);
@@ -55,40 +56,81 @@
             display: flex;
             justify-content: space-between;
             font-size: 18px;
+            font-weight: 600;
+            color: #000;
         }
         #gameOver {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 40px;
-            border: 3px solid #fff;
-            border-radius: 10px;
+            background: rgba(245, 245, 245, 0.98);
+            padding: 50px 60px;
+            border: 2px solid #000;
+            border-radius: 12px;
             text-align: center;
-            color: white;
+            color: #000;
             display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
         #gameOver h1 {
-            margin-bottom: 20px;
-            font-size: 48px;
+            margin-bottom: 10px;
+            font-size: 72px;
+            font-weight: 900;
+            letter-spacing: 4px;
         }
-        #gameOver p {
-            margin: 10px 0;
-            font-size: 24px;
+        #gameOver .subtitle {
+            font-size: 20px;
+            color: #E74C3C;
+            margin-bottom: 30px;
+        }
+        #gameOver .divider {
+            width: 100%;
+            height: 1px;
+            background: #000;
+            margin: 25px 0;
+        }
+        #gameOver .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        #gameOver .stat-item {
+            text-align: center;
+        }
+        #gameOver .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #gameOver .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #000;
         }
         #gameOver button {
-            margin-top: 20px;
-            padding: 15px 40px;
+            margin-top: 30px;
+            padding: 15px 50px;
             font-size: 20px;
-            background: #0af;
-            border: none;
-            border-radius: 5px;
-            color: white;
+            background: transparent;
+            border: 3px solid #000;
+            border-radius: 30px;
+            color: #000;
             cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 4px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         #gameOver button:hover {
-            background: #0cf;
+            background: #000;
+            color: #F5F5F5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        #gameOver button:active {
+            transform: translateY(0);
         }
         #startScreen {
             position: absolute;
@@ -96,95 +138,146 @@
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            color: white;
+            color: #000;
+            animation: fadeIn 0.8s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -45%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
         }
         #startScreen h1 {
-            font-size: 64px;
-            margin-bottom: 20px;
+            font-size: 96px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            letter-spacing: 8px;
+            font-family: 'Arial Black', 'Arial', sans-serif;
         }
-        #startScreen p {
-            font-size: 20px;
-            margin: 10px 0;
+        #startScreen .subtitle {
+            font-size: 24px;
+            color: #E74C3C;
+            margin-bottom: 50px;
+            font-weight: 400;
         }
         #startScreen button {
             margin-top: 30px;
-            padding: 15px 40px;
+            padding: 18px 60px;
             font-size: 24px;
-            background: #0af;
-            border: none;
-            border-radius: 5px;
-            color: white;
+            background: transparent;
+            border: 3px solid #000;
+            border-radius: 30px;
+            color: #000;
             cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 6px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         #startScreen button:hover {
-            background: #0cf;
+            background: #000;
+            color: #F5F5F5;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+        #startScreen button:active {
+            transform: translateY(-1px);
+        }
+        #startScreen .hint {
+            margin-top: 25px;
+            font-size: 14px;
+            color: #999;
         }
         #difficultySelect {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            padding: 40px;
-            border: 3px solid #0af;
-            border-radius: 10px;
+            background: rgba(245, 245, 245, 0.98);
+            padding: 50px 60px;
+            border: 2px solid #000;
+            border-radius: 12px;
             text-align: center;
-            color: white;
+            color: #000;
             display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease;
         }
         #difficultySelect h1 {
-            font-size: 48px;
-            margin-bottom: 30px;
-            color: #0cf;
+            font-size: 72px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            letter-spacing: 6px;
+            font-family: 'Arial Black', 'Arial', sans-serif;
+        }
+        #difficultySelect .subtitle {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 40px;
         }
         .difficulty-option {
-            margin: 20px 0;
-            padding: 20px;
-            background: rgba(0, 170, 255, 0.1);
-            border: 2px solid #0af;
+            margin: 15px auto;
+            padding: 25px 30px;
+            width: 500px;
+            background: transparent;
+            border: 2px solid #000;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            text-align: left;
         }
         .difficulty-option:hover {
-            background: rgba(0, 170, 255, 0.3);
-            border-color: #0cf;
-            transform: scale(1.05);
+            background: rgba(0, 0, 0, 0.05);
+            border-width: 3px;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         .difficulty-option h2 {
-            font-size: 32px;
-            margin-bottom: 10px;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #000;
         }
-        .difficulty-option p {
+        .difficulty-option .desc {
             font-size: 16px;
-            color: #aaa;
+            color: #666;
             margin: 5px 0;
         }
-        .difficulty-hardcore { border-color: #f00; }
-        .difficulty-hardcore:hover { border-color: #f55; background: rgba(255, 0, 0, 0.2); }
-        .difficulty-balanced { border-color: #0af; }
-        .difficulty-balanced:hover { border-color: #0cf; background: rgba(0, 170, 255, 0.3); }
-        .difficulty-casual { border-color: #0f0; }
-        .difficulty-casual:hover { border-color: #5f5; background: rgba(0, 255, 0, 0.2); }
+        .difficulty-option .desc-en {
+            font-size: 14px;
+            color: #999;
+            font-style: italic;
+            margin-top: 8px;
+        }
+        .difficulty-hardcore { border-color: #E74C3C; }
+        .difficulty-hardcore:hover { border-color: #E74C3C; }
+        .difficulty-balanced { border-color: #3498DB; }
+        .difficulty-balanced:hover { border-color: #3498DB; }
+        .difficulty-casual { border-color: #2ECC71; }
+        .difficulty-casual:hover { border-color: #2ECC71; }
         #debugPanel {
             position: absolute;
             top: 80px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(255, 255, 255, 0.95);
             padding: 15px;
-            border: 2px solid #0af;
+            border: 1px solid #000;
             border-radius: 8px;
-            color: #0cf;
+            color: #000;
             font-family: 'Courier New', monospace;
             font-size: 14px;
             min-width: 280px;
             display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         #debugPanel h3 {
             margin-bottom: 10px;
-            color: #fff;
+            color: #000;
             font-size: 16px;
-            border-bottom: 1px solid #0af;
+            border-bottom: 1px solid #000;
             padding-bottom: 5px;
         }
         #debugPanel .debug-row {
@@ -194,49 +287,56 @@
             padding: 3px 0;
         }
         #debugPanel .debug-label {
-            color: #aaa;
+            color: #666;
         }
         #debugPanel .debug-value {
-            color: #0ff;
+            color: #000;
             font-weight: bold;
         }
         #debugPanel .debug-value.warning {
-            color: #fa0;
+            color: #E67E22;
         }
         #debugPanel .debug-value.danger {
-            color: #f55;
+            color: #E74C3C;
         }
         #debugPanel .debug-value.good {
-            color: #5f5;
+            color: #27AE60;
         }
         #debugToggle {
             position: absolute;
             top: 20px;
             right: 20px;
             padding: 8px 15px;
-            background: rgba(0, 170, 255, 0.3);
-            border: 2px solid #0af;
+            background: transparent;
+            border: 1px solid #000;
             border-radius: 5px;
-            color: #0cf;
+            color: #000;
             cursor: pointer;
             font-size: 12px;
             font-family: 'Courier New', monospace;
+            transition: all 0.3s;
         }
         #debugToggle:hover {
-            background: rgba(0, 170, 255, 0.5);
+            background: #000;
+            color: #F5F5F5;
         }
         #backButton {
             margin-top: 30px;
-            padding: 10px 30px;
+            padding: 12px 40px;
             font-size: 18px;
-            background: #555;
-            border: none;
-            border-radius: 5px;
-            color: white;
+            background: transparent;
+            border: 2px solid #666;
+            border-radius: 25px;
+            color: #666;
             cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 3px;
+            transition: all 0.3s;
         }
         #backButton:hover {
-            background: #777;
+            background: #666;
+            color: #F5F5F5;
+            border-color: #666;
         }
     </style>
 </head>
@@ -288,11 +388,10 @@
         </div>
     </div>
     <div id="startScreen">
-        <h1>格挡反击</h1>
-        <p>WASD - 移动</p>
-        <p>空格 / 鼠标左键 - 格挡</p>
-        <p>格挡成功后自动反击最近的敌人</p>
-        <button onclick="showDifficultySelect()">开始游戏</button>
+        <h1>BLADE ECHO</h1>
+        <div class="subtitle">剑刃回响</div>
+        <button onclick="showDifficultySelect()">START</button>
+        <div class="hint">点击开始游戏</div>
     </div>
     <div id="difficultySelect">
         <h1>选择难度</h1>
