@@ -254,7 +254,7 @@
     },
     "background": {
       "gradient": false,
-      "backgroundColor": "#F9F9F9",
+      "backgroundColor": "#F0F0F0",
       "gradientColors": ["#000428", "#004e92", "#000000"],
       "vignette": false,
       "vignetteStrength": 0.2
