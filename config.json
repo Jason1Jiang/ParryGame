@@ -79,7 +79,7 @@
     "meleeSpawnChance": 0.35,
     "spawnInField": true,
     "fadeInDuration": 500,
-    "invincibleDuration": 800,
+    "invincibleDuration": 300,
     "spawnMargin": 100,
     "minDistanceFromPlayer": 200,
     "minDistanceBetweenEnemies": 120,
