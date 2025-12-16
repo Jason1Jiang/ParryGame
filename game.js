@@ -1,5 +1,76 @@
 // 游戏配置
 let CONFIG = null;
+let selectedDifficulty = 'balanced'; // 默认平衡模式
+let debugMode = false; // 调试模式
+
+// 难度预设配置
+const DIFFICULTY_PRESETS = {
+    hardcore: {
+        name: '硬核',
+        spawn: {
+            initialInterval: 1000,
+            minInterval: 300,
+            maxInterval: 2000,
+            dynamicSpawn: {
+                killTracking: {
+                    adjustFactor: 0.6,
+                    trackCount: 5
+                },
+                comboBoost: {
+                    thresholds: [3, 5, 10],
+                    multipliers: [0.85, 0.6, 0.4]
+                },
+                enemyCountControl: {
+                    baseTarget: 5,
+                    maxTarget: 15
+                }
+            }
+        }
+    },
+    balanced: {
+        name: '平衡',
+        spawn: {
+            initialInterval: 1500,
+            minInterval: 400,
+            maxInterval: 2500,
+            dynamicSpawn: {
+                killTracking: {
+                    adjustFactor: 0.75,
+                    trackCount: 5
+                },
+                comboBoost: {
+                    thresholds: [3, 5, 10, 15],
+                    multipliers: [0.9, 0.75, 0.6, 0.5]
+                },
+                enemyCountControl: {
+                    baseTarget: 4,
+                    maxTarget: 12
+                }
+            }
+        }
+    },
+    casual: {
+        name: '休闲',
+        spawn: {
+            initialInterval: 2500,
+            minInterval: 1000,
+            maxInterval: 3500,
+            dynamicSpawn: {
+                killTracking: {
+                    adjustFactor: 0.9,
+                    trackCount: 3
+                },
+                comboBoost: {
+                    enabled: false
+                },
+                enemyCountControl: {
+                    baseTarget: 3,
+                    maxTarget: 8
+                }
+            }
+        }
+    }
+};
 
 // 游戏状态
 let canvas, ctx;
@@ -52,6 +123,144 @@ async function loadConfig() {
     }
 }
 
+// 应用难度预设
+function applyDifficultyPreset(difficulty) {
+    const preset = DIFFICULTY_PRESETS[difficulty];
+    if (!preset || !CONFIG) return;
+    
+    // 深度合并配置
+    if (preset.spawn) {
+        CONFIG.spawn.initialInterval = preset.spawn.initialInterval;
+        CONFIG.spawn.minInterval = preset.spawn.minInterval;
+        CONFIG.spawn.maxInterval = preset.spawn.maxInterval;
+        
+        if (preset.spawn.dynamicSpawn) {
+            const ds = preset.spawn.dynamicSpawn;
+            
+            if (ds.killTracking) {
+                CONFIG.spawn.dynamicSpawn.killTracking.adjustFactor = ds.killTracking.adjustFactor;
+                CONFIG.spawn.dynamicSpawn.killTracking.trackCount = ds.killTracking.trackCount;
+            }
+            
+            if (ds.comboBoost) {
+                if (ds.comboBoost.enabled === false) {
+                    CONFIG.spawn.dynamicSpawn.comboBoost.enabled = false;
+                } else {
+                    CONFIG.spawn.dynamicSpawn.comboBoost.enabled = true;
+                    if (ds.comboBoost.thresholds) {
+                        CONFIG.spawn.dynamicSpawn.comboBoost.thresholds = ds.comboBoost.thresholds;
+                    }
+                    if (ds.comboBoost.multipliers) {
+                        CONFIG.spawn.dynamicSpawn.comboBoost.multipliers = ds.comboBoost.multipliers;
+                    }
+                }
+            }
+            
+            if (ds.enemyCountControl) {
+                CONFIG.spawn.dynamicSpawn.enemyCountControl.baseTarget = ds.enemyCountControl.baseTarget;
+                CONFIG.spawn.dynamicSpawn.enemyCountControl.maxTarget = ds.enemyCountControl.maxTarget;
+            }
+        }
+    }
+    
+    console.log(`已应用难度预设: ${preset.name}`, CONFIG.spawn);
+}
+
+// 选择难度
+function selectDifficulty(difficulty) {
+    selectedDifficulty = difficulty;
+    applyDifficultyPreset(difficulty);
+    document.getElementById('difficultySelect').style.display = 'none';
+    startGame();
+}
+
+// 显示难度选择
+function showDifficultySelect() {
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('difficultySelect').style.display = 'block';
+}
+
+// 返回开始界面
+function backToStart() {
+    document.getElementById('difficultySelect').style.display = 'none';
+    document.getElementById('startScreen').style.display = 'block';
+}
+
+// 切换调试模式
+function toggleDebug() {
+    debugMode = !debugMode;
+    const panel = document.getElementById('debugPanel');
+    panel.style.display = debugMode ? 'block' : 'none';
+}
+
+// 更新调试信息
+function updateDebugInfo() {
+    if (!debugMode) return;
+    
+    const spawnInterval = Math.round(enemySpawnInterval);
+    const avgKill = Math.round(avgKillInterval);
+    const comboMult = getComboMultiplier(comboCount);
+    const countMult = getEnemyCountMultiplier();
+    const targetCount = Math.round(targetEnemyCount);
+    
+    // 刷怪间隔（根据速度显示不同颜色）
+    const intervalEl = document.getElementById('debugSpawnInterval');
+    intervalEl.textContent = spawnInterval + 'ms';
+    if (spawnInterval < 600) {
+        intervalEl.className = 'debug-value danger';
+    } else if (spawnInterval < 1200) {
+        intervalEl.className = 'debug-value warning';
+    } else {
+        intervalEl.className = 'debug-value good';
+    }
+    
+    // 平均击杀间隔
+    document.getElementById('debugAvgKill').textContent = avgKill + 'ms';
+    
+    // 连击
+    const comboEl = document.getElementById('debugCombo');
+    comboEl.textContent = comboCount + 'x';
+    if (comboCount >= 10) {
+        comboEl.className = 'debug-value danger';
+    } else if (comboCount >= 5) {
+        comboEl.className = 'debug-value warning';
+    } else {
+        comboEl.className = 'debug-value';
+    }
+    
+    // 连击倍率
+    document.getElementById('debugComboMult').textContent = comboMult.toFixed(2) + 'x';
+    
+    // 敌人数量
+    const enemyCountEl = document.getElementById('debugEnemyCount');
+    enemyCountEl.textContent = enemies.length;
+    if (enemies.length > targetCount + 3) {
+        enemyCountEl.className = 'debug-value danger';
+    } else if (enemies.length < targetCount - 2) {
+        enemyCountEl.className = 'debug-value warning';
+    } else {
+        enemyCountEl.className = 'debug-value good';
+    }
+    
+    // 目标数量
+    document.getElementById('debugTargetCount').textContent = targetCount;
+    
+    // 数量倍率
+    const countMultEl = document.getElementById('debugCountMult');
+    countMultEl.textContent = countMult.toFixed(2) + 'x';
+    if (countMult < 1.0) {
+        countMultEl.className = 'debug-value danger';
+    } else if (countMult > 1.0) {
+        countMultEl.className = 'debug-value warning';
+    } else {
+        countMultEl.className = 'debug-value';
+    }
+    
+    // 难度模式
+    const difficultyName = DIFFICULTY_PRESETS[selectedDifficulty]?.name || '未知';
+    document.getElementById('debugDifficulty').textContent = difficultyName;
+}
+
 // 初始化
 async function init() {
     canvas = document.getElementById('gameCanvas');
@@ -64,6 +273,12 @@ async function init() {
     document.addEventListener('keydown', (e) => {
         keys[e.key.toLowerCase()] = true;
         if (e.key === ' ') e.preventDefault();
+        
+        // F3 切换调试模式
+        if (e.key === 'F3') {
+            e.preventDefault();
+            toggleDebug();
+        }
     });
     document.addEventListener('keyup', (e) => {
         keys[e.key.toLowerCase()] = false;
@@ -1219,6 +1434,9 @@ function update() {
     
     // 更新UI
     updateUI();
+    
+    // 更新调试信息
+    updateDebugInfo();
 }
 
 // 更新玩家
