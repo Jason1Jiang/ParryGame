@@ -30,6 +30,19 @@
             transform: translateX(-50%);
             width: 800px;
             color: #000;
+            display: none;
+        }
+        #controls {
+            position: absolute;
+            bottom: calc(50vh - 300px + 20px);
+            left: calc(50vw - 400px + 20px);
+            font-size: 14px;
+            color: #666;
+            line-height: 1.8;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            pointer-events: none;
+            display: none;
         }
         #energyBar {
             width: 100%;
@@ -140,6 +153,7 @@
             text-align: center;
             color: #000;
             animation: fadeIn 0.8s ease;
+            width: 700px;
         }
         @keyframes fadeIn {
             from {
@@ -152,29 +166,30 @@
             }
         }
         #startScreen h1 {
-            font-size: 96px;
+            font-size: 72px;
             font-weight: 900;
-            margin-bottom: 10px;
-            letter-spacing: 8px;
+            margin-bottom: 8px;
+            letter-spacing: 6px;
             font-family: 'Arial Black', 'Arial', sans-serif;
+            line-height: 1.1;
         }
         #startScreen .subtitle {
-            font-size: 24px;
+            font-size: 20px;
             color: #E74C3C;
-            margin-bottom: 50px;
+            margin-bottom: 35px;
             font-weight: 400;
         }
         #startScreen button {
-            margin-top: 30px;
-            padding: 18px 60px;
-            font-size: 24px;
+            margin-top: 25px;
+            padding: 15px 55px;
+            font-size: 22px;
             background: transparent;
             border: 3px solid #000;
             border-radius: 30px;
             color: #000;
             cursor: pointer;
             font-weight: 700;
-            letter-spacing: 6px;
+            letter-spacing: 5px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         #startScreen button:hover {
@@ -187,9 +202,21 @@
             transform: translateY(-1px);
         }
         #startScreen .hint {
-            margin-top: 25px;
-            font-size: 14px;
+            margin-top: 20px;
+            font-size: 13px;
             color: #999;
+            letter-spacing: 1px;
+        }
+        #startScreen .gameplay-intro {
+            margin: 25px 0;
+            padding: 15px 0;
+        }
+        #startScreen .intro-line {
+            font-size: 16px;
+            color: #666;
+            margin: 6px 0;
+            letter-spacing: 2px;
+            font-weight: 400;
         }
         #difficultySelect {
             position: absolute;
@@ -315,6 +342,7 @@
             font-size: 12px;
             font-family: 'Courier New', monospace;
             transition: all 0.3s;
+            display: none;
         }
         #debugToggle:hover {
             background: #000;
@@ -350,6 +378,10 @@
             <div>击杀数: <span id="kills">0</span></div>
             <div>时间: <span id="time">0</span>s</div>
         </div>
+    </div>
+    <div id="controls">
+        WASD 移动<br>
+        空格/鼠标 格挡
     </div>
     <div id="debugToggle" onclick="toggleDebug()">调试 [F3]</div>
     <div id="debugPanel">
@@ -390,36 +422,49 @@
     <div id="startScreen">
         <h1>BLADE ECHO</h1>
         <div class="subtitle">剑刃回响</div>
+        <div class="gameplay-intro">
+            <div class="intro-line">格挡敌袭 · 瞬影反击</div>
+            <div class="intro-line">以守为攻 · 一击制胜</div>
+        </div>
         <button onclick="showDifficultySelect()">START</button>
-        <div class="hint">点击开始游戏</div>
+        <div class="hint">WASD 移动 · 空格/鼠标 格挡</div>
     </div>
     <div id="difficultySelect">
-        <h1>选择难度</h1>
+        <h1>SELECT DIFFICULTY</h1>
+        <div class="subtitle">选择难度</div>
         <div class="difficulty-option difficulty-hardcore" onclick="selectDifficulty('hardcore')">
-            <h2>⚡⚡⚡ 硬核模式</h2>
-            <p>刷怪速度: 极快 (300-1000ms)</p>
-            <p>最大敌人: 15个</p>
-            <p>适合: 高手玩家，追求极限挑战</p>
+            <h2>⚡⚡⚡ HARDCORE</h2>
+            <div class="desc">极快节奏 | 15敌人</div>
+            <div class="desc-en">For Expert Players</div>
         </div>
         <div class="difficulty-option difficulty-balanced" onclick="selectDifficulty('balanced')">
-            <h2>⚡⚡ 平衡模式</h2>
-            <p>刷怪速度: 快速 (400-2500ms)</p>
-            <p>最大敌人: 12个</p>
-            <p>适合: 大多数玩家，快节奏战斗</p>
+            <h2>⚡⚡ BALANCED</h2>
+            <div class="desc">快速节奏 | 12敌人</div>
+            <div class="desc-en">For Most Players</div>
         </div>
         <div class="difficulty-option difficulty-casual" onclick="selectDifficulty('casual')">
-            <h2>🌙 休闲模式</h2>
-            <p>刷怪速度: 适中 (1000-3500ms)</p>
-            <p>最大敌人: 8个</p>
-            <p>适合: 新手玩家，轻松体验</p>
+            <h2>🌙 CASUAL</h2>
+            <div class="desc">适中节奏 | 8敌人</div>
+            <div class="desc-en">For Beginners</div>
         </div>
-        <button id="backButton" onclick="backToStart()">返回</button>
+        <button id="backButton" onclick="backToStart()">BACK</button>
     </div>
     <div id="gameOver">
-        <h1>游戏结束</h1>
-        <p>击杀数: <span id="finalKills">0</span></p>
-        <p>存活时间: <span id="finalTime">0</span>s</p>
-        <button onclick="restartGame()">重新开始</button>
+        <h1>GAME OVER</h1>
+        <div class="subtitle">游戏结束</div>
+        <div class="divider"></div>
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-label">KILLS</div>
+                <div class="stat-value" id="finalKills">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">TIME</div>
+                <div class="stat-value"><span id="finalTime">0</span>s</div>
+            </div>
+        </div>
+        <div class="divider"></div>
+        <button onclick="restartGame()">RESTART</button>
     </div>
     <script src="game.js"></script>
 </body>

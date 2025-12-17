@@ -109,6 +109,12 @@ let multiCounterActive = false; // 多重反击是否激活
 let wasPressingBlockKeyLastFrame = false; // 上一帧是否按着格挡键
 let spawnWarnings = []; // 生成预警
 
+// 边缘发光状态
+let comboGlowActive = false;
+let comboGlowProgress = 0;
+let comboGlowDuration = 0;
+let comboGlowStartTime = 0;
+
 // 加载配置
 async function loadConfig() {
     try {
@@ -396,6 +402,12 @@ function startGame() {
     multiCounterQueue = [];
     multiCounterActive = false;
     wasPressingBlockKeyLastFrame = false;
+    
+    // 重置边缘发光
+    comboGlowActive = false;
+    comboGlowProgress = 0;
+    comboGlowDuration = 0;
+    comboGlowStartTime = 0;
     
     // 初始化音频
     initAudio();
@@ -1085,6 +1097,204 @@ function updateSlashTrails() {
     }
 }
 
+// 触发连击边缘发光
+function triggerComboGlow() {
+    const cfg = CONFIG.visual?.edgeGlow?.combo;
+    if (!cfg || !cfg.enabled) return;
+    
+    comboGlowActive = true;
+    comboGlowProgress = 0;
+    comboGlowStartTime = Date.now();
+    
+    // 根据连击数设置持续时间
+    const intensity = getComboGlowIntensity(comboCount);
+    comboGlowDuration = intensity.duration;
+}
+
+// 更新连击边缘发光
+function updateComboGlow() {
+    if (!comboGlowActive) return;
+    
+    const elapsed = Date.now() - comboGlowStartTime;
+    comboGlowProgress = elapsed / comboGlowDuration;
+    
+    if (comboGlowProgress >= 1) {
+        comboGlowActive = false;
+        comboGlowProgress = 0;
+    }
+}
+
+// 获取连击颜色
+function getComboColor(combo) {
+    const cfg = CONFIG.visual?.edgeGlow?.combo;
+    if (!cfg || !cfg.colors) return '#FFFFFF';
+    
+    const colors = cfg.colors;
+    if (combo >= 15) return colors['15'];
+    if (combo >= 10) return colors['10'];
+    if (combo >= 5) return colors['5'];
+    if (combo >= 3) return colors['3'];
+    return colors['1'];
+}
+
+// 获取连击发光强度
+function getComboGlowIntensity(combo) {
+    const cfg = CONFIG.visual?.edgeGlow?.combo;
+    if (!cfg || !cfg.intensity) {
+        return { alpha: 0.3, width: 40, duration: 300 };
+    }
+    
+    const intensity = cfg.intensity;
+    if (combo >= 15) return intensity['15'];
+    if (combo >= 10) return intensity['10'];
+    if (combo >= 5) return intensity['5'];
+    if (combo >= 3) return intensity['3'];
+    return intensity['1'];
+}
+
+// 获取格挡发光参数
+function getBlockGlowParams() {
+    const cfg = CONFIG.visual?.edgeGlow?.blocking;
+    if (!cfg || !cfg.enabled) return null;
+    
+    const energyPercent = energy / CONFIG.energy.max;
+    const time = Date.now() / 1000;
+    
+    // 脉冲效果
+    let pulseSpeed = cfg.pulseSpeed?.high || 2.0;
+    if (energyPercent < 0.3) pulseSpeed = cfg.pulseSpeed?.low || 1.0;
+    else if (energyPercent < 0.6) pulseSpeed = cfg.pulseSpeed?.medium || 1.5;
+    
+    const pulse = (Math.sin(time * Math.PI * pulseSpeed) + 1) / 2;
+    
+    // 基础透明度
+    let baseAlpha = cfg.maxAlpha || 0.4;
+    if (energyPercent < 0.3) baseAlpha = cfg.minAlpha || 0.15;
+    else if (energyPercent < 0.6) baseAlpha = (cfg.minAlpha + cfg.maxAlpha) / 2 || 0.25;
+    
+    const alpha = baseAlpha * (0.7 + pulse * 0.3);
+    
+    // 宽度
+    const minWidth = cfg.minWidth || 30;
+    const maxWidth = cfg.maxWidth || 50;
+    const width = minWidth + energyPercent * (maxWidth - minWidth);
+    
+    // 颜色
+    const baseColor = cfg.baseColor || '#0CF';
+    
+    return {
+        width: width,
+        alpha: alpha,
+        color: baseColor
+    };
+}
+
+// 获取连击发光参数
+function getComboGlowParams() {
+    const cfg = CONFIG.visual?.edgeGlow?.combo;
+    if (!cfg || !cfg.enabled) return null;
+    
+    const comboColor = getComboColor(comboCount);
+    const intensity = getComboGlowIntensity(comboCount);
+    const progress = comboGlowProgress;
+    
+    // 淡入淡出
+    let alpha = intensity.alpha;
+    const fadeIn = cfg.fadeIn || 0.1;
+    const fadeOut = cfg.fadeOut || 0.2;
+    
+    if (progress < fadeIn) {
+        alpha *= progress / fadeIn; // 快速淡入
+    } else if (progress > (1 - fadeOut)) {
+        alpha *= (1 - progress) / fadeOut; // 缓慢淡出
+    }
+    
+    return {
+        width: intensity.width,
+        alpha: alpha,
+        color: comboColor
+    };
+}
+
+// 获取边缘发光参数
+function getEdgeGlowParams() {
+    // 连击发光优先
+    if (comboGlowActive) {
+        return getComboGlowParams();
+    }
+    
+    // 格挡发光
+    if (player.blocking && !player.counterAttacking) {
+        return getBlockGlowParams();
+    }
+    
+    // 无发光
+    return null;
+}
+
+// 渲染边缘发光
+function renderEdgeGlow() {
+    const cfg = CONFIG.visual?.edgeGlow;
+    if (!cfg || !cfg.enabled) return;
+    
+    const params = getEdgeGlowParams();
+    if (!params) return;
+    
+    const canvas = CONFIG.canvas;
+    
+    // 解析颜色并添加透明度
+    const hexToRgba = (hex, alpha) => {
+        // 移除 # 号
+        hex = hex.replace('#', '');
+        
+        // 处理3位hex颜色（如 #0CF）
+        if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+    
+    const colorOuter = hexToRgba(params.color, params.alpha);
+    const colorMid = hexToRgba(params.color, params.alpha * 0.5);
+    const colorInner = hexToRgba(params.color, 0);
+    
+    // 顶部边缘
+    const topGradient = ctx.createLinearGradient(0, 0, 0, params.width);
+    topGradient.addColorStop(0, colorOuter);
+    topGradient.addColorStop(0.5, colorMid);
+    topGradient.addColorStop(1, colorInner);
+    ctx.fillStyle = topGradient;
+    ctx.fillRect(0, 0, canvas.width, params.width);
+    
+    // 底部边缘
+    const bottomGradient = ctx.createLinearGradient(0, canvas.height - params.width, 0, canvas.height);
+    bottomGradient.addColorStop(0, colorInner);
+    bottomGradient.addColorStop(0.5, colorMid);
+    bottomGradient.addColorStop(1, colorOuter);
+    ctx.fillStyle = bottomGradient;
+    ctx.fillRect(0, canvas.height - params.width, canvas.width, params.width);
+    
+    // 左侧边缘
+    const leftGradient = ctx.createLinearGradient(0, 0, params.width, 0);
+    leftGradient.addColorStop(0, colorOuter);
+    leftGradient.addColorStop(0.5, colorMid);
+    leftGradient.addColorStop(1, colorInner);
+    ctx.fillStyle = leftGradient;
+    ctx.fillRect(0, 0, params.width, canvas.height);
+    
+    // 右侧边缘
+    const rightGradient = ctx.createLinearGradient(canvas.width - params.width, 0, canvas.width, 0);
+    rightGradient.addColorStop(0, colorInner);
+    rightGradient.addColorStop(0.5, colorMid);
+    rightGradient.addColorStop(1, colorOuter);
+    ctx.fillStyle = rightGradient;
+    ctx.fillRect(canvas.width - params.width, 0, params.width, canvas.height);
+}
+
 // 渲染刀光残留
 function renderSlashTrails() {
     const cfg = CONFIG.visual?.counterEffect;
@@ -1446,6 +1656,9 @@ function update() {
     // 更新刀光残留
     updateSlashTrails();
     
+    // 更新边缘发光
+    updateComboGlow();
+    
     // 更新连击计时
     if (comboTimer > 0) {
         comboTimer -= 16;
@@ -1492,6 +1705,9 @@ function updatePlayer() {
                 // 连击系统
                 comboCount++;
                 comboTimer = CONFIG.visual.combo.timeout;
+                
+                // 触发连击边缘发光
+                triggerComboGlow();
                 
                 // 视觉效果
                 triggerScreenShake(CONFIG.visual.screenShake.counterHit);
@@ -2059,6 +2275,9 @@ function render() {
     if (typeof renderCombo === 'function') {
         renderCombo();
     }
+    
+    // 渲染边缘发光（在所有内容之后，不受震动影响）
+    renderEdgeGlow();
     
     // 渲染暗角
     if (CONFIG.visual && CONFIG.visual.background && CONFIG.visual.background.vignette) {

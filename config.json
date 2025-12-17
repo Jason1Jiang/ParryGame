@@ -301,6 +301,61 @@
       "particleReduction": true,
       "enhancedContrast": true,
       "cleanBackground": true
+    },
+    "edgeGlow": {
+      "enabled": true,
+      "blocking": {
+        "enabled": true,
+        "baseColor": "#0CF",
+        "minWidth": 30,
+        "maxWidth": 50,
+        "minAlpha": 0.15,
+        "maxAlpha": 0.4,
+        "pulseSpeed": {
+          "high": 2.0,
+          "medium": 1.5,
+          "low": 1.0
+        }
+      },
+      "combo": {
+        "enabled": true,
+        "colors": {
+          "1": "#FFFFFF",
+          "3": "#FFFF00",
+          "5": "#FF8800",
+          "10": "#FF00FF",
+          "15": "#00FFFF"
+        },
+        "intensity": {
+          "1": {
+            "alpha": 0.3,
+            "width": 40,
+            "duration": 300
+          },
+          "3": {
+            "alpha": 0.4,
+            "width": 50,
+            "duration": 400
+          },
+          "5": {
+            "alpha": 0.5,
+            "width": 60,
+            "duration": 500
+          },
+          "10": {
+            "alpha": 0.6,
+            "width": 70,
+            "duration": 600
+          },
+          "15": {
+            "alpha": 0.7,
+            "width": 80,
+            "duration": 800
+          }
+        },
+        "fadeIn": 0.1,
+        "fadeOut": 0.2
+      }
     }
   }
 }

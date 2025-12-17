@@ -57,6 +57,13 @@
 
 按版本记录的视觉效果优化和新功能实现。
 
+- **[MENU_REFRESH_v3.1.md](visual-updates/MENU_REFRESH_v3.1.md)** - v3.1 主界面优化设计 🆕
+  - 参考 DUST DUEL 简约风格
+  - 现代简约高级界面设计
+  - 中英双语大标题
+  - 描边按钮设计
+  - 完整的实现指南
+
 - **[VISUAL_UPDATE_v2.1.md](visual-updates/VISUAL_UPDATE_v2.1.md)** - v2.1 闪光和刀光优化
   - 玩家本体闪光效果
   - 多层刀光瞬移效果
