@@ -294,6 +294,16 @@
           "frequency": 1000,
           "duration": 0.2
         }
+      },
+      "music": {
+        "enabled": true,
+        "volume": 0.3,
+        "fadeInDuration": 1000,
+        "fadeOutDuration": 1000,
+        "files": {
+          "menu": "assets/music/bgm_menu.mp3",
+          "battle": "assets/music/bgm_battle.mp3"
+        }
       }
     },
     "clarity": {
