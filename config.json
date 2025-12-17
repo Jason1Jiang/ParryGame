@@ -365,6 +365,39 @@
         "fadeIn": 0.1,
         "fadeOut": 0.2
       }
+    },
+    "playerDeath": {
+      "enabled": true,
+      "animationDuration": 2000,
+      "shrinkDuration": 400,
+      "shrinkScale": 0.3,
+      "rotationSpeed": 360,
+      "particleCount": 100,
+      "particleSpeedMin": 8,
+      "particleSpeedMax": 15,
+      "particleSizeMin": 2,
+      "particleSizeMax": 6,
+      "particleLifeMin": 500,
+      "particleLifeMax": 800,
+      "particleGravity": 0.1,
+      "particleFriction": 0.98,
+      "particleColors": {
+        "core": "#FFFFFF",
+        "main": "#8B7355",
+        "ember": "#0CF"
+      },
+      "particleRatios": {
+        "core": 0.3,
+        "main": 0.5,
+        "ember": 0.2
+      },
+      "screenShakeIntensity": 30,
+      "timeSlowScale": 0.05,
+      "timeSlowDuration": 1000,
+      "shockwaveRadius": 200,
+      "shockwaveColor": "#F55",
+      "fadeOutDelay": 2000,
+      "fadeOutDuration": 200
     }
   }
 }
