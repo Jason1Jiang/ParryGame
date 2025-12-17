@@ -184,9 +184,6 @@ function selectDifficulty(difficulty) {
 function showDifficultySelect() {
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('difficultySelect').style.display = 'block';
-    
-    // 播放菜单音乐（用户交互后才能播放）
-    playBGM('menu');
 }
 
 // 返回开始界面
@@ -424,10 +421,6 @@ function startGame() {
 // 重新开始
 function restartGame() {
     document.getElementById('gameOver').style.display = 'none';
-    
-    // 重新播放战斗音乐
-    playBGM('battle');
-    
     startGame();
 }
 
@@ -1548,10 +1541,8 @@ function updatePerfectParryCombo() {
     }
 }
 
-// BGM 音乐系统
-let bgmMenu = null;
+// BGM 音乐系统（仅战斗音乐）
 let bgmBattle = null;
-let currentBGM = null;
 let bgmFadeInterval = null;
 
 // 初始化BGM
@@ -1560,16 +1551,9 @@ function initBGM() {
     if (!musicCfg || !musicCfg.enabled) return;
     
     try {
-        // 创建音频对象
-        bgmMenu = new Audio(musicCfg.files.menu);
+        // 创建战斗音乐对象
         bgmBattle = new Audio(musicCfg.files.battle);
-        
-        // 设置循环播放
-        bgmMenu.loop = true;
         bgmBattle.loop = true;
-        
-        // 设置音量
-        bgmMenu.volume = 0;
         bgmBattle.volume = 0;
         
         console.log('BGM initialized');
@@ -1578,28 +1562,13 @@ function initBGM() {
     }
 }
 
-// 播放BGM（带淡入）
-function playBGM(type) {
+// 播放战斗BGM（带淡入）
+function playBattleBGM() {
     const musicCfg = CONFIG.visual?.audio?.music;
-    if (!musicCfg || !musicCfg.enabled) return;
+    if (!musicCfg || !musicCfg.enabled || !bgmBattle) return;
     
-    const bgm = type === 'menu' ? bgmMenu : bgmBattle;
-    if (!bgm) return;
-    
-    // 如果已经在播放这个BGM，不重复播放
-    if (currentBGM === bgm) return;
-    
-    // 停止所有BGM
-    if (bgmMenu) {
-        bgmMenu.pause();
-        bgmMenu.currentTime = 0;
-        bgmMenu.volume = 0;
-    }
-    if (bgmBattle) {
-        bgmBattle.pause();
-        bgmBattle.currentTime = 0;
-        bgmBattle.volume = 0;
-    }
+    // 如果已经在播放，不重复播放
+    if (!bgmBattle.paused) return;
     
     // 清除淡入淡出定时器
     if (bgmFadeInterval) {
@@ -1607,20 +1576,20 @@ function playBGM(type) {
         bgmFadeInterval = null;
     }
     
-    // 播放新BGM
-    currentBGM = bgm;
-    bgm.currentTime = 0;
-    bgm.play().then(() => {
-        fadeInBGM(bgm, musicCfg.fadeInDuration, musicCfg.volume);
+    // 播放音乐
+    bgmBattle.currentTime = 0;
+    bgmBattle.volume = 0;
+    bgmBattle.play().then(() => {
+        fadeInBGM(musicCfg.fadeInDuration, musicCfg.volume);
     }).catch(e => {
         console.warn('BGM play failed:', e);
     });
 }
 
 // 停止BGM（带淡出）
-function stopBGM() {
+function stopBattleBGM() {
     const musicCfg = CONFIG.visual?.audio?.music;
-    if (!musicCfg) return;
+    if (!musicCfg || !bgmBattle) return;
     
     // 清除淡入淡出定时器
     if (bgmFadeInterval) {
@@ -1628,29 +1597,19 @@ function stopBGM() {
         bgmFadeInterval = null;
     }
     
-    // 淡出并停止当前BGM
-    if (currentBGM) {
-        fadeOutBGM(currentBGM, musicCfg.fadeOutDuration);
-    }
-    
-    currentBGM = null;
+    // 淡出并停止
+    fadeOutBGM(musicCfg.fadeOutDuration);
 }
 
 // 淡入BGM
-function fadeInBGM(bgm, duration, targetVolume) {
-    if (!bgm) return;
+function fadeInBGM(duration, targetVolume) {
+    if (!bgmBattle) return;
     
-    // 清除之前的淡入/淡出
-    if (bgmFadeInterval) {
-        clearInterval(bgmFadeInterval);
-    }
-    
-    bgm.volume = 0;
     const step = targetVolume / (duration / 50);
     
     bgmFadeInterval = setInterval(() => {
-        if (bgm.volume < targetVolume) {
-            bgm.volume = Math.min(targetVolume, bgm.volume + step);
+        if (bgmBattle.volume < targetVolume) {
+            bgmBattle.volume = Math.min(targetVolume, bgmBattle.volume + step);
         } else {
             clearInterval(bgmFadeInterval);
             bgmFadeInterval = null;
@@ -1659,22 +1618,17 @@ function fadeInBGM(bgm, duration, targetVolume) {
 }
 
 // 淡出BGM
-function fadeOutBGM(bgm, duration) {
-    if (!bgm) return;
+function fadeOutBGM(duration) {
+    if (!bgmBattle) return;
     
-    // 清除之前的淡入/淡出
-    if (bgmFadeInterval) {
-        clearInterval(bgmFadeInterval);
-    }
-    
-    const startVolume = bgm.volume;
+    const startVolume = bgmBattle.volume;
     const step = startVolume / (duration / 50);
     
     bgmFadeInterval = setInterval(() => {
-        if (bgm.volume > 0) {
-            bgm.volume = Math.max(0, bgm.volume - step);
+        if (bgmBattle.volume > 0) {
+            bgmBattle.volume = Math.max(0, bgmBattle.volume - step);
         } else {
-            bgm.pause();
+            bgmBattle.pause();
             clearInterval(bgmFadeInterval);
             bgmFadeInterval = null;
         }
