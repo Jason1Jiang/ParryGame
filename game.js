@@ -340,6 +340,8 @@ function startGame() {
     
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('ui').style.display = 'block';
+    document.getElementById('controls').style.display = 'block';
+    document.getElementById('debugToggle').style.display = 'block';
     
     gameState = 'playing';
     energy = CONFIG.energy.max;
