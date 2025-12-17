@@ -184,6 +184,9 @@ function selectDifficulty(difficulty) {
 function showDifficultySelect() {
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('difficultySelect').style.display = 'block';
+    
+    // 播放菜单音乐（用户交互后才能播放）
+    playBGM('menu');
 }
 
 // 返回开始界面
@@ -275,6 +278,9 @@ async function init() {
     // 加载配置
     await loadConfig();
     
+    // 初始化音频（包括BGM）
+    initAudio();
+    
     // 初始化菜单粒子
     particles = [];
     for (let i = 0; i < CONFIG.particles.count; i++) {
@@ -349,6 +355,9 @@ function startGame() {
     document.getElementById('controls').style.display = 'block';
     document.getElementById('debugToggle').style.display = 'block';
     
+    // 切换到战斗音乐
+    playBGM('battle');
+    
     gameState = 'playing';
     energy = CONFIG.energy.max;
     kills = 0;
@@ -409,15 +418,16 @@ function startGame() {
     comboGlowDuration = 0;
     comboGlowStartTime = 0;
     
-    // 初始化音频
-    initAudio();
-    
     gameLoop();
 }
 
 // 重新开始
 function restartGame() {
     document.getElementById('gameOver').style.display = 'none';
+    
+    // 重新播放战斗音乐
+    playBGM('battle');
+    
     startGame();
 }
 
@@ -1538,6 +1548,139 @@ function updatePerfectParryCombo() {
     }
 }
 
+// BGM 音乐系统
+let bgmMenu = null;
+let bgmBattle = null;
+let currentBGM = null;
+let bgmFadeInterval = null;
+
+// 初始化BGM
+function initBGM() {
+    const musicCfg = CONFIG.visual?.audio?.music;
+    if (!musicCfg || !musicCfg.enabled) return;
+    
+    try {
+        // 创建音频对象
+        bgmMenu = new Audio(musicCfg.files.menu);
+        bgmBattle = new Audio(musicCfg.files.battle);
+        
+        // 设置循环播放
+        bgmMenu.loop = true;
+        bgmBattle.loop = true;
+        
+        // 设置音量
+        bgmMenu.volume = 0;
+        bgmBattle.volume = 0;
+        
+        console.log('BGM initialized');
+    } catch (e) {
+        console.warn('BGM initialization failed:', e);
+    }
+}
+
+// 播放BGM（带淡入）
+function playBGM(type) {
+    const musicCfg = CONFIG.visual?.audio?.music;
+    if (!musicCfg || !musicCfg.enabled) return;
+    
+    const bgm = type === 'menu' ? bgmMenu : bgmBattle;
+    if (!bgm) return;
+    
+    // 如果已经在播放这个BGM，不重复播放
+    if (currentBGM === bgm) return;
+    
+    // 停止所有BGM
+    if (bgmMenu) {
+        bgmMenu.pause();
+        bgmMenu.currentTime = 0;
+        bgmMenu.volume = 0;
+    }
+    if (bgmBattle) {
+        bgmBattle.pause();
+        bgmBattle.currentTime = 0;
+        bgmBattle.volume = 0;
+    }
+    
+    // 清除淡入淡出定时器
+    if (bgmFadeInterval) {
+        clearInterval(bgmFadeInterval);
+        bgmFadeInterval = null;
+    }
+    
+    // 播放新BGM
+    currentBGM = bgm;
+    bgm.currentTime = 0;
+    bgm.play().then(() => {
+        fadeInBGM(bgm, musicCfg.fadeInDuration, musicCfg.volume);
+    }).catch(e => {
+        console.warn('BGM play failed:', e);
+    });
+}
+
+// 停止BGM（带淡出）
+function stopBGM() {
+    const musicCfg = CONFIG.visual?.audio?.music;
+    if (!musicCfg) return;
+    
+    // 清除淡入淡出定时器
+    if (bgmFadeInterval) {
+        clearInterval(bgmFadeInterval);
+        bgmFadeInterval = null;
+    }
+    
+    // 淡出并停止当前BGM
+    if (currentBGM) {
+        fadeOutBGM(currentBGM, musicCfg.fadeOutDuration);
+    }
+    
+    currentBGM = null;
+}
+
+// 淡入BGM
+function fadeInBGM(bgm, duration, targetVolume) {
+    if (!bgm) return;
+    
+    // 清除之前的淡入/淡出
+    if (bgmFadeInterval) {
+        clearInterval(bgmFadeInterval);
+    }
+    
+    bgm.volume = 0;
+    const step = targetVolume / (duration / 50);
+    
+    bgmFadeInterval = setInterval(() => {
+        if (bgm.volume < targetVolume) {
+            bgm.volume = Math.min(targetVolume, bgm.volume + step);
+        } else {
+            clearInterval(bgmFadeInterval);
+            bgmFadeInterval = null;
+        }
+    }, 50);
+}
+
+// 淡出BGM
+function fadeOutBGM(bgm, duration) {
+    if (!bgm) return;
+    
+    // 清除之前的淡入/淡出
+    if (bgmFadeInterval) {
+        clearInterval(bgmFadeInterval);
+    }
+    
+    const startVolume = bgm.volume;
+    const step = startVolume / (duration / 50);
+    
+    bgmFadeInterval = setInterval(() => {
+        if (bgm.volume > 0) {
+            bgm.volume = Math.max(0, bgm.volume - step);
+        } else {
+            bgm.pause();
+            clearInterval(bgmFadeInterval);
+            bgmFadeInterval = null;
+        }
+    }, 50);
+}
+
 // 音频系统
 function initAudio() {
     if (!CONFIG.visual?.audio?.enabled) return;
@@ -1547,6 +1690,9 @@ function initAudio() {
     } catch (e) {
         console.warn('Web Audio API not supported:', e);
     }
+    
+    // 初始化BGM
+    initBGM();
 }
 
 function playSound(soundType) {
@@ -2218,6 +2364,9 @@ function gameOver() {
     document.getElementById('finalKills').textContent = kills;
     document.getElementById('finalTime').textContent = gameTime;
     document.getElementById('gameOver').style.display = 'block';
+    
+    // 淡出战斗音乐
+    stopBGM();
 }
 
 // 渲染
