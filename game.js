@@ -352,8 +352,8 @@ function startGame() {
     document.getElementById('controls').style.display = 'block';
     document.getElementById('debugToggle').style.display = 'block';
     
-    // 切换到战斗音乐
-    playBGM('battle');
+    // 播放战斗音乐
+    playBattleBGM();
     
     gameState = 'playing';
     energy = CONFIG.energy.max;
@@ -2320,7 +2320,7 @@ function gameOver() {
     document.getElementById('gameOver').style.display = 'block';
     
     // 淡出战斗音乐
-    stopBGM();
+    stopBattleBGM();
 }
 
 // 渲染
