@@ -98,6 +98,15 @@ let comboTimer = 0;
 let deathAnimations = [];
 let floatingTexts = [];
 let shockwaves = [];
+
+// 玩家死亡动画状态
+let playerDying = false;
+let deathAnimationStartTime = 0;
+let deathParticles = [];
+let playerDeathAlpha = 1.0;
+let playerDeathScale = 1.0;
+let playerDeathRotation = 0;
+let deathFadeAlpha = 0;
 let slashTrails = []; // 刀光残留
 let lastParryTime = 0; // 上次格挡时间
 let perfectParryCombo = 0; // 完美格挡连击数
@@ -1708,6 +1717,18 @@ function update() {
     const now = Date.now();
     gameTime = Math.floor((now - startTime) / 1000);
     
+    // 如果玩家正在死亡，只更新死亡动画
+    if (playerDying) {
+        updatePlayerDeathAnimation();
+        updateVisualEffects();
+        updateParticles();
+        updateShockwaves();
+        // 敌人和子弹继续移动（慢动作）
+        updateEnemies();
+        updateBullets();
+        return;
+    }
+    
     // 更新格挡键状态（在所有逻辑之前，确保能记录按键时间）
     updateBlockKeyState();
     
@@ -2078,8 +2099,8 @@ function updateMeleeEnemy(enemy, now) {
                         enemy.state = 'cooldown';
                         enemy.stateTime = now;
                     }
-                } else if (!player.counterAttacking) {
-                    gameOver();
+                } else if (!player.counterAttacking && !playerDying) {
+                    startPlayerDeathAnimation();
                     return;
                 }
             }
@@ -2166,9 +2187,9 @@ function updateBullets() {
                     
                     triggerCounter();
                 }
-            } else if (!player.counterAttacking) {
+            } else if (!player.counterAttacking && !playerDying) {
                 // 玩家被击中
-                gameOver();
+                startPlayerDeathAnimation();
             }
         }
     }
@@ -2312,6 +2333,209 @@ function updateUI() {
     }
 }
 
+// 开始玩家死亡动画
+function startPlayerDeathAnimation() {
+    if (!CONFIG.visual.playerDeath || !CONFIG.visual.playerDeath.enabled) {
+        // 如果禁用死亡动画，直接结算
+        gameOver();
+        return;
+    }
+    
+    const cfg = CONFIG.visual.playerDeath;
+    
+    playerDying = true;
+    deathAnimationStartTime = Date.now();
+    playerDeathAlpha = 1.0;
+    playerDeathScale = 1.0;
+    playerDeathRotation = 0;
+    deathFadeAlpha = 0;
+    deathParticles = [];
+    
+    // 触发强烈视觉效果
+    triggerScreenShake(cfg.screenShakeIntensity);
+    triggerTimeScale(cfg.timeSlowScale, cfg.timeSlowDuration);
+    triggerFlash(1.5); // 超强闪光
+    
+    // 创建大型冲击波
+    createShockwave(player.x, player.y, cfg.shockwaveRadius, cfg.shockwaveColor);
+    
+    // 强烈扰动背景粒子
+    disturbParticles(player.x, player.y, cfg.shockwaveRadius, 20);
+    
+    // 生成死亡粒子
+    generateDeathParticles();
+}
+
+// 生成死亡粒子
+function generateDeathParticles() {
+    const cfg = CONFIG.visual.playerDeath;
+    const particleCount = cfg.particleCount;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const ratio = i / particleCount;
+        
+        // 根据比例分配颜色
+        let color;
+        if (ratio < cfg.particleRatios.core) {
+            color = cfg.particleColors.core; // 核心粒子（白色）
+        } else if (ratio < cfg.particleRatios.core + cfg.particleRatios.main) {
+            color = cfg.particleColors.main; // 主体粒子（玩家颜色）
+        } else {
+            color = cfg.particleColors.ember; // 余烬粒子（青色）
+        }
+        
+        // 360度均匀分布 + 随机偏移
+        const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.3;
+        const speed = cfg.particleSpeedMin + Math.random() * (cfg.particleSpeedMax - cfg.particleSpeedMin);
+        const size = cfg.particleSizeMin + Math.random() * (cfg.particleSizeMax - cfg.particleSizeMin);
+        const life = cfg.particleLifeMin + Math.random() * (cfg.particleLifeMax - cfg.particleLifeMin);
+        
+        deathParticles.push({
+            x: player.x,
+            y: player.y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: size,
+            color: color,
+            alpha: 1.0,
+            life: life,
+            maxLife: life,
+            gravity: cfg.particleGravity,
+            friction: cfg.particleFriction
+        });
+    }
+}
+
+// 更新玩家死亡动画
+function updatePlayerDeathAnimation() {
+    if (!playerDying) return;
+    
+    const cfg = CONFIG.visual.playerDeath;
+    const elapsed = Date.now() - deathAnimationStartTime;
+    
+    // 阶段1: 玩家缩小旋转（0-shrinkDuration）
+    if (elapsed < cfg.shrinkDuration) {
+        const progress = elapsed / cfg.shrinkDuration;
+        playerDeathScale = 1.0 - progress * (1.0 - cfg.shrinkScale);
+        playerDeathRotation = progress * cfg.rotationSpeed;
+        playerDeathAlpha = 1.0 - progress * 0.5; // 透明度降到0.5
+    }
+    // 阶段2: 玩家完全消失（shrinkDuration - animationDuration/2）
+    else if (elapsed < cfg.animationDuration / 2) {
+        const progress = (elapsed - cfg.shrinkDuration) / (cfg.animationDuration / 2 - cfg.shrinkDuration);
+        playerDeathScale = cfg.shrinkScale;
+        playerDeathRotation = cfg.rotationSpeed + progress * cfg.rotationSpeed;
+        playerDeathAlpha = 0.5 - progress * 0.5; // 透明度从0.5降到0
+    }
+    // 阶段3: 只有粒子（animationDuration/2 - fadeOutDelay）
+    else if (elapsed < cfg.fadeOutDelay) {
+        playerDeathAlpha = 0;
+    }
+    // 阶段4: 淡入黑色遮罩（fadeOutDelay - fadeOutDelay+fadeOutDuration）
+    else if (elapsed < cfg.fadeOutDelay + cfg.fadeOutDuration) {
+        playerDeathAlpha = 0;
+        const fadeProgress = (elapsed - cfg.fadeOutDelay) / cfg.fadeOutDuration;
+        deathFadeAlpha = fadeProgress * 0.8;
+    }
+    // 阶段5: 显示结算界面
+    else {
+        playerDying = false;
+        gameOver();
+        return;
+    }
+    
+    // 更新死亡粒子
+    updateDeathParticles();
+}
+
+// 更新死亡粒子
+function updateDeathParticles() {
+    for (let i = deathParticles.length - 1; i >= 0; i--) {
+        const p = deathParticles[i];
+        
+        // 位置更新
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        // 重力影响
+        p.vy += p.gravity;
+        
+        // 空气阻力
+        p.vx *= p.friction;
+        p.vy *= p.friction;
+        
+        // 生命周期
+        p.life -= 16.67; // 假设60fps，约16.67ms每帧
+        p.alpha = Math.max(0, p.life / p.maxLife);
+        
+        // 移除死亡粒子
+        if (p.life <= 0) {
+            deathParticles.splice(i, 1);
+        }
+    }
+}
+
+// 渲染玩家死亡动画
+function renderPlayerDeathAnimation() {
+    if (!playerDying) return;
+    
+    // 渲染玩家本体（如果还可见）
+    if (playerDeathAlpha > 0) {
+        ctx.save();
+        ctx.globalAlpha = playerDeathAlpha;
+        ctx.translate(player.x, player.y);
+        ctx.rotate((playerDeathRotation * Math.PI) / 180);
+        ctx.scale(playerDeathScale, playerDeathScale);
+        
+        // 绘制玩家（使用原始颜色）
+        ctx.fillStyle = '#8B7355';
+        ctx.beginPath();
+        ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+    }
+    
+    // 渲染死亡粒子
+    renderDeathParticles();
+    
+    // 渲染淡入遮罩
+    if (deathFadeAlpha > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(0, 0, 0, ${deathFadeAlpha})`;
+        ctx.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
+        ctx.restore();
+    }
+}
+
+// 渲染死亡粒子
+function renderDeathParticles() {
+    deathParticles.forEach(p => {
+        ctx.save();
+        
+        // 发光效果
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.color;
+        
+        // 绘制粒子
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 拖尾效果（仅余烬粒子）
+        if (p.color === CONFIG.visual.playerDeath.particleColors.ember) {
+            ctx.globalAlpha = p.alpha * 0.3;
+            ctx.beginPath();
+            ctx.arc(p.x - p.vx * 2, p.y - p.vy * 2, p.size * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        ctx.restore();
+    });
+}
+
 // 游戏结束
 function gameOver() {
     gameState = 'gameOver';
@@ -2359,12 +2583,17 @@ function render() {
     // 渲染敌人
     renderEnemies();
     
-    // 渲染玩家
-    renderPlayer();
-    
-    // 渲染反击效果
-    if (player.counterAttacking) {
-        renderCounterEffect();
+    // 如果玩家正在死亡，渲染死亡动画
+    if (playerDying) {
+        renderPlayerDeathAnimation();
+    } else {
+        // 渲染玩家
+        renderPlayer();
+        
+        // 渲染反击效果
+        if (player.counterAttacking) {
+            renderCounterEffect();
+        }
     }
     
     ctx.restore();
