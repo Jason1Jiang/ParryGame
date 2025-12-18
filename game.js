@@ -1756,27 +1756,36 @@ function initAudio() {
 }
 
 function playSound(soundType) {
-    if (!audioContext || !CONFIG.visual?.audio?.enabled) return;
+    if (!CONFIG.visual?.audio?.enabled) return;
     
     const soundCfg = CONFIG.visual.audio.sounds[soundType];
     if (!soundCfg || !soundCfg.enabled) return;
     
     try {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = soundCfg.frequency;
-        oscillator.type = 'sine';
-        
-        const volume = CONFIG.visual.audio.volume;
-        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + soundCfg.duration);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + soundCfg.duration);
+        // 如果配置了音频文件，使用音频文件
+        if (soundCfg.file) {
+            const audio = new Audio(soundCfg.file);
+            audio.volume = CONFIG.visual.audio.volume;
+            audio.play().catch(e => console.warn('Error playing audio file:', e));
+        } 
+        // 否则使用程序化音效（Web Audio API）
+        else if (audioContext) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = soundCfg.frequency;
+            oscillator.type = 'sine';
+            
+            const volume = CONFIG.visual.audio.volume;
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + soundCfg.duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + soundCfg.duration);
+        }
     } catch (e) {
         console.warn('Error playing sound:', e);
     }

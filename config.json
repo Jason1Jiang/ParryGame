@@ -334,32 +334,44 @@
         "parry": {
           "enabled": true,
           "frequency": 800,
-          "duration": 0.1
+          "duration": 0.1,
+          "file": null //"assets/sounds/parry.mp3"
         },
         "perfectParry": {
           "enabled": true,
           "frequency": 1200,
-          "duration": 0.15
+          "duration": 0.15,
+          "file": null //"assets/sounds/perfect_parry.mp3"
         },
         "counter": {
           "enabled": true,
           "frequency": 600,
-          "duration": 0.2
+          "duration": 0.2,
+          "file": null
         },
         "slash": {
           "enabled": true,
           "frequency": 400,
-          "duration": 0.3
+          "duration": 0.3,
+          "file": null //"assets/sounds/slash.mp3"
         },
         "kill": {
           "enabled": true,
           "frequency": 1000,
-          "duration": 0.2
+          "duration": 0.2,
+          "file": null //"assets/sounds/kill.mp3"
         },
         "death": {
           "enabled": true,
           "frequency": 200,
-          "duration": 0.8
+          "duration": 0.8,
+          "file": null
+        },
+        "spawn": {
+          "enabled": true,
+          "frequency": 1200,
+          "duration": 0.2,
+          "file": null
         }
       },
       "music": {
