@@ -498,6 +498,459 @@
             background: #000;
             color: #F5F5F5;
         }
+        
+        /* 教程系统样式 */
+        #tutorialScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        #tutorialContent {
+            background: rgba(245, 245, 245, 0.98);
+            padding: 50px 60px;
+            border: 2px solid #000;
+            border-radius: 12px;
+            width: 700px;
+            text-align: center;
+            color: #000;
+        }
+        .tutorial-steps {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #CCC;
+            transition: all 0.3s;
+        }
+        .step-dot.active {
+            background: #000;
+            transform: scale(1.5);
+        }
+        .tutorial-title {
+            font-size: 48px;
+            margin-bottom: 40px;
+            color: #000;
+            font-weight: 700;
+        }
+        .tutorial-animation {
+            height: 250px;
+            margin: 40px 0;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .anim-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .tutorial-description {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+        .tutorial-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .tutorial-button {
+            padding: 12px 30px;
+            font-size: 18px;
+            border: 2px solid #000;
+            background: transparent;
+            color: #000;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .tutorial-button:hover {
+            background: #000;
+            color: #F5F5F5;
+        }
+        .tutorial-button.primary {
+            background: #000;
+            color: #F5F5F5;
+        }
+        .tutorial-button.primary:hover {
+            background: #333;
+        }
+
+        
+        /* 动画元素样式 */
+        .player-circle {
+            width: 30px;
+            height: 30px;
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 50%;
+            position: absolute;
+        }
+        
+        /* 步骤1: 移动动画 */
+        .demo-player {
+            position: relative;
+            animation: moveDemo 4s ease-in-out infinite;
+        }
+        @keyframes moveDemo {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(0, -50px); }
+            40% { transform: translate(-50px, 0); }
+            60% { transform: translate(0, 50px); }
+            80% { transform: translate(50px, 0); }
+        }
+        .wasd-keys {
+            position: absolute;
+            bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            grid-template-rows: repeat(2, 40px);
+            gap: 5px;
+        }
+        .key {
+            width: 40px;
+            height: 40px;
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .key-w { grid-column: 2; grid-row: 1; }
+        .key-a { grid-column: 1; grid-row: 2; }
+        .key-s { grid-column: 2; grid-row: 2; }
+        .key-d { grid-column: 3; grid-row: 2; }
+        
+        /* 步骤2: 格挡反击动画 (合并) */
+        .demo-enemy-ranged-single {
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 35px solid #f33;
+            position: absolute;
+            left: 100px;
+            animation: enemyShootSingle 6s ease-in-out infinite;
+        }
+        @keyframes enemyShootSingle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            25% { opacity: 1; transform: scale(1.2); }
+            30% { opacity: 1; transform: scale(1); }
+            65% { opacity: 1; transform: scale(1.3); }
+            75%, 100% { opacity: 0; transform: scale(0); }
+        }
+        .demo-bullet-single {
+            width: 16px;
+            height: 16px;
+            background: #f55;
+            border-radius: 50%;
+            position: absolute;
+            left: 120px;
+            animation: bulletFlySingle 6s ease-in-out infinite;
+        }
+        @keyframes bulletFlySingle {
+            0%, 20% { transform: translateX(0); opacity: 0; }
+            25% { opacity: 1; }
+            50% { transform: translateX(280px); opacity: 1; }
+            55% { transform: translateX(260px) scale(0.5); opacity: 0.5; }
+            60%, 100% { opacity: 0; }
+        }
+        .demo-player-defend {
+            position: absolute;
+            right: 100px;
+            animation: playerDefendCounter 6s ease-in-out infinite;
+        }
+        @keyframes playerDefendCounter {
+            0%, 30% { transform: translateX(0); opacity: 1; }
+            55% { transform: translateX(0); opacity: 1; } /* 格挡成功 */
+            60% { transform: translateX(-100px); opacity: 0; } /* 瞬移消失 */
+            65% { transform: translateX(-380px); opacity: 1; } /* 出现在敌人旁 */
+            100% { transform: translateX(-380px); opacity: 1; }
+        }
+        .demo-player-defend .shield {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #0cf;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            animation: shieldDefend 6s ease-in-out infinite;
+            box-shadow: 0 0 20px #0cf;
+        }
+        @keyframes shieldDefend {
+            0%, 28% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            30%, 58% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            60%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+        }
+        .slash-effect-single {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #0ff, #fff);
+            position: absolute;
+            left: 100px;
+            opacity: 0;
+            animation: slashSingle 6s ease-in-out infinite;
+            border-radius: 10px;
+            transform: rotate(45deg);
+        }
+        @keyframes slashSingle {
+            0%, 63% { opacity: 0; transform: rotate(45deg) scale(0); }
+            67% { opacity: 1; transform: rotate(45deg) scale(1.5); }
+            73% { opacity: 0.5; transform: rotate(90deg) scale(2); }
+            78%, 100% { opacity: 0; }
+        }
+        .explosion-particles-single {
+            width: 100px;
+            height: 100px;
+            position: absolute;
+            left: 50px;
+            animation: particleExplodeSingle 6s ease-in-out infinite;
+        }
+        @keyframes particleExplodeSingle {
+            0%, 70% { opacity: 0; }
+            74% { opacity: 1; box-shadow: 0 0 50px #f33, 0 0 100px #f33; }
+            84%, 100% { opacity: 0; }
+        }
+        
+        /* 步骤3: 完美格挡动画 */
+        .demo-enemy-ranged-1 {
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-bottom: 32px solid #f33;
+            position: absolute;
+            left: 80px;
+            top: 60px;
+            animation: enemyRanged1 7s ease-in-out infinite;
+        }
+        .demo-enemy-ranged-2 {
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-bottom: 32px solid #f33;
+            position: absolute;
+            left: 80px;
+            bottom: 60px;
+            animation: enemyRanged2 7s ease-in-out infinite;
+        }
+        @keyframes enemyRanged1 {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            15% { opacity: 1; transform: scale(1.2); }
+            20% { opacity: 1; transform: scale(1); }
+            38% { opacity: 1; transform: scale(1.3); }
+            45%, 100% { opacity: 0; transform: scale(0); }
+        }
+        @keyframes enemyRanged2 {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            15% { opacity: 1; transform: scale(1.2); }
+            20% { opacity: 1; transform: scale(1); }
+            55% { opacity: 1; transform: scale(1.3); }
+            62%, 100% { opacity: 0; transform: scale(0); }
+        }
+        .demo-bullet-1 {
+            width: 14px;
+            height: 14px;
+            background: #f55;
+            border-radius: 50%;
+            position: absolute;
+            left: 100px;
+            top: 75px;
+            animation: bullet1Fly 7s ease-in-out infinite;
+        }
+        .demo-bullet-2 {
+            width: 14px;
+            height: 14px;
+            background: #f55;
+            border-radius: 50%;
+            position: absolute;
+            left: 100px;
+            bottom: 75px;
+            animation: bullet2Fly 7s ease-in-out infinite;
+        }
+        @keyframes bullet1Fly {
+            0%, 10% { transform: translateX(0); opacity: 0; }
+            15% { opacity: 1; }
+            35% { transform: translateX(280px); opacity: 1; }
+            38% { transform: translateX(260px) scale(0.5); opacity: 0.5; }
+            42%, 100% { opacity: 0; }
+        }
+        @keyframes bullet2Fly {
+            0%, 10% { transform: translateX(0); opacity: 0; }
+            15% { opacity: 1; }
+            35% { transform: translateX(280px); opacity: 1; }
+            38% { transform: translateX(260px) scale(0.5); opacity: 0.5; }
+            42%, 100% { opacity: 0; }
+        }
+        .demo-player-perfect {
+            position: absolute;
+            right: 120px;
+            animation: perfectCounterChain 7s ease-in-out infinite;
+        }
+        @keyframes perfectCounterChain {
+            0%, 33% { transform: translate(0, 0); opacity: 1; }
+            38% { transform: translate(0, 0); opacity: 1; } /* 格挡 */
+            42% { transform: translate(-150px, -60px); opacity: 0; } /* 瞬移到敌人1 */
+            46% { transform: translate(-300px, -60px); opacity: 1; } /* 到达敌人1 */
+            52% { transform: translate(-300px, -60px); opacity: 0; } /* 消失 */
+            56% { transform: translate(-300px, 0); opacity: 0; } /* 瞬移到敌人2 */
+            60% { transform: translate(-300px, 60px); opacity: 1; } /* 到达敌人2 */
+            100% { transform: translate(-300px, 60px); opacity: 1; }
+        }
+        .shield-perfect {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #0cf;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            animation: shieldPerfect 7s ease-in-out infinite;
+            box-shadow: 0 0 20px #0cf;
+        }
+        @keyframes shieldPerfect {
+            0%, 33% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            35%, 40% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            42%, 100% { opacity: 0; }
+        }
+        .perfect-flash {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #ffd700, transparent);
+            position: absolute;
+            right: 120px;
+            border-radius: 50%;
+            opacity: 0;
+            animation: goldFlash 7s ease-in-out infinite;
+        }
+        @keyframes goldFlash {
+            0%, 36% { opacity: 0; }
+            38%, 40% { opacity: 1; } /* 完美格挡闪光 */
+            42%, 100% { opacity: 0; }
+        }
+        .gold-slash-1 {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(45deg, #ffd700, #fff);
+            position: absolute;
+            left: 80px;
+            top: 60px;
+            opacity: 0;
+            border-radius: 10px;
+            animation: goldSlash1 7s ease-in-out infinite;
+        }
+        .gold-slash-2 {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(45deg, #ffd700, #fff);
+            position: absolute;
+            left: 80px;
+            bottom: 60px;
+            opacity: 0;
+            border-radius: 10px;
+            animation: goldSlash2 7s ease-in-out infinite;
+        }
+        @keyframes goldSlash1 {
+            0%, 44% { opacity: 0; transform: rotate(45deg) scale(0); }
+            48% { opacity: 1; transform: rotate(45deg) scale(1.5); }
+            54%, 100% { opacity: 0; transform: rotate(90deg) scale(2); }
+        }
+        @keyframes goldSlash2 {
+            0%, 58% { opacity: 0; transform: rotate(-45deg) scale(0); }
+            62% { opacity: 1; transform: rotate(-45deg) scale(1.5); }
+            68%, 100% { opacity: 0; transform: rotate(-90deg) scale(2); }
+        }
+        .explosion-particles-1 {
+            width: 80px;
+            height: 80px;
+            position: absolute;
+            left: 50px;
+            top: 40px;
+            animation: particleExplode1 7s ease-in-out infinite;
+        }
+        .explosion-particles-2 {
+            width: 80px;
+            height: 80px;
+            position: absolute;
+            left: 50px;
+            bottom: 40px;
+            animation: particleExplode2 7s ease-in-out infinite;
+        }
+        @keyframes particleExplode1 {
+            0%, 46% { opacity: 0; }
+            50% { opacity: 1; box-shadow: 0 0 50px #ffd700, 0 0 100px #ffd700; }
+            58%, 100% { opacity: 0; }
+        }
+        @keyframes particleExplode2 {
+            0%, 60% { opacity: 0; }
+            64% { opacity: 1; box-shadow: 0 0 50px #ffd700, 0 0 100px #ffd700; }
+            72%, 100% { opacity: 0; }
+        }
+        
+        /* 步骤4: 目标动画 */
+        .demo-stats {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            padding: 0 50px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .stat-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #000;
+            animation: statsCountUp 2s ease-out;
+        }
+        @keyframes statsCountUp {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .combo-glow {
+            animation: statsCountUp 2s ease-out, comboGlow 2s ease-in-out infinite 2s;
+        }
+        @keyframes comboGlow {
+            0%, 100% { text-shadow: 0 0 5px #000; }
+            50% { text-shadow: 0 0 20px #0ff, 0 0 30px #0ff; }
+        }
     </style>
 </head>
 <body>
@@ -551,6 +1004,88 @@
             <span class="debug-value" id="debugDifficulty">平衡</span>
         </div>
     </div>
+    <div id="tutorialScreen">
+        <div id="tutorialContent">
+            <div class="tutorial-steps">
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+            </div>
+            
+            <h2 id="tutorialTitle" class="tutorial-title">🎮 移动</h2>
+            
+            <div class="tutorial-animation" id="tutorialAnimation">
+                <!-- 步骤1: 移动 -->
+                <div class="anim-container" id="animation-move">
+                    <div class="demo-player">
+                        <div class="player-circle"></div>
+                    </div>
+                    <div class="wasd-keys">
+                        <div class="key key-w">W</div>
+                        <div class="key key-a">A</div>
+                        <div class="key key-s">S</div>
+                        <div class="key key-d">D</div>
+                    </div>
+                </div>
+                
+                <!-- 步骤2: 格挡反击 (合并) -->
+                <div class="anim-container" id="animation-blockCounter" style="display: none;">
+                    <div class="demo-enemy-ranged-single"></div>
+                    <div class="demo-bullet-single"></div>
+                    <div class="demo-player-defend">
+                        <div class="player-circle"></div>
+                        <div class="shield"></div>
+                    </div>
+                    <div class="slash-effect-single"></div>
+                    <div class="explosion-particles-single"></div>
+                </div>
+                
+                <!-- 步骤3: 完美格挡 -->
+                <div class="anim-container" id="animation-perfectParry" style="display: none;">
+                    <div class="demo-enemy-ranged-1"></div>
+                    <div class="demo-enemy-ranged-2"></div>
+                    <div class="demo-bullet-1"></div>
+                    <div class="demo-bullet-2"></div>
+                    <div class="demo-player-perfect">
+                        <div class="player-circle"></div>
+                        <div class="shield-perfect"></div>
+                    </div>
+                    <div class="perfect-flash"></div>
+                    <div class="gold-slash-1"></div>
+                    <div class="gold-slash-2"></div>
+                    <div class="explosion-particles-1"></div>
+                    <div class="explosion-particles-2"></div>
+                </div>
+                
+                <!-- 步骤4: 目标 -->
+                <div class="anim-container" id="animation-goal" style="display: none;">
+                    <div class="demo-stats">
+                        <div class="stat-item">
+                            <div class="stat-label">击杀</div>
+                            <div class="stat-value" id="demoKills">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">时间</div>
+                            <div class="stat-value" id="demoTime">0s</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">连击</div>
+                            <div class="stat-value combo-glow" id="demoCombo">0x</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <p id="tutorialDescription" class="tutorial-description">使用 WASD 键移动角色</p>
+            
+            <div class="tutorial-buttons">
+                <button class="tutorial-button" id="tutorialPrevBtn" onclick="tutorial.prevStep()">← 上一步</button>
+                <button class="tutorial-button" id="tutorialSkipBtn" onclick="tutorial.skip()">跳过</button>
+                <button class="tutorial-button primary" id="tutorialNextBtn" onclick="tutorial.nextStep()">下一步 →</button>
+            </div>
+        </div>
+    </div>
     <div id="startScreen">
         <h1>BLADE ECHO</h1>
         <div class="subtitle">剑刃回响</div>
@@ -560,6 +1095,7 @@
         </div>
         <button onclick="showDifficultySelect()">START</button>
         <button onclick="showLeaderboard()" style="margin-top: 15px;">RANKS</button>
+        <button onclick="tutorial.show()" style="margin-top: 15px; font-size: 18px; padding: 12px 40px;">? 教程</button>
         <div class="hint">WASD 移动 · 空格/鼠标 格挡</div>
     </div>
     <div id="difficultySelect">

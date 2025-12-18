@@ -118,6 +118,11 @@ let multiCounterActive = false; // 多重反击是否激活
 let wasPressingBlockKeyLastFrame = false; // 上一帧是否按着格挡键
 let spawnWarnings = []; // 生成预警
 
+// 无敌状态系统
+let playerInvincible = false;
+let invincibleEndTime = 0;
+let invincibleReason = null;
+
 // 边缘发光状态
 let comboGlowActive = false;
 let comboGlowProgress = 0;
@@ -417,6 +422,11 @@ function startGame() {
     multiCounterQueue = [];
     multiCounterActive = false;
     wasPressingBlockKeyLastFrame = false;
+    
+    // 重置无敌状态
+    playerInvincible = false;
+    invincibleEndTime = 0;
+    invincibleReason = null;
     
     // 重置边缘发光
     comboGlowActive = false;
@@ -1437,6 +1447,39 @@ function checkMultiCounter() {
     return timeSinceKeyPress < cfg.timeWindow && timeSinceKeyPress > 0;
 }
 
+// 检查玩家是否无敌
+function isPlayerInvincible() {
+    if (!playerInvincible) return false;
+    
+    const now = Date.now();
+    if (now >= invincibleEndTime) {
+        playerInvincible = false;
+        invincibleReason = null;
+        return false;
+    }
+    
+    return true;
+}
+
+// 设置玩家无敌状态
+function setPlayerInvincible(duration, reason = 'unknown') {
+    playerInvincible = true;
+    invincibleEndTime = Date.now() + duration;
+    invincibleReason = reason;
+    
+    const invCfg = CONFIG.invincibility;
+    if (invCfg?.debug?.enabled && invCfg?.debug?.showInConsole) {
+        console.log(`Player invincible: ${reason}, duration: ${duration}ms`);
+    }
+}
+
+// 清除玩家无敌状态
+function clearPlayerInvincible() {
+    playerInvincible = false;
+    invincibleEndTime = 0;
+    invincibleReason = null;
+}
+
 // 触发多重反击
 function triggerMultiCounter() {
     const cfg = CONFIG.visual?.multiCounter;
@@ -1463,6 +1506,16 @@ function triggerMultiCounter() {
     // 激活多重反击
     multiCounterActive = true;
     multiCounterQueue = targets.slice();
+    
+    // 设置多重反击无敌状态
+    const invCfg = CONFIG.invincibility;
+    if (invCfg?.enabled && invCfg?.multiCounter?.enabled) {
+        const perCounterDuration = invCfg.multiCounter.perCounterDuration;
+        const delayBetween = invCfg.multiCounter.delayBetweenCounters;
+        const bufferTime = invCfg.multiCounter.bufferTime;
+        const totalDuration = targets.length * (perCounterDuration + delayBetween) + bufferTime;
+        setPlayerInvincible(totalDuration, 'multi-counter');
+    }
     
     // 超强视觉效果
     triggerFlash(2.0);
@@ -2123,6 +2176,12 @@ function updateMeleeEnemy(enemy, now) {
                         enemy.stateTime = now;
                     }
                 } else if (!player.counterAttacking && !playerDying) {
+                    // 检查玩家是否无敌
+                    if (isPlayerInvincible()) {
+                        // 无敌期间不受伤害
+                        break;
+                    }
+                    
                     startPlayerDeathAnimation();
                     return;
                 }
@@ -2211,6 +2270,12 @@ function updateBullets() {
                     triggerCounter();
                 }
             } else if (!player.counterAttacking && !playerDying) {
+                // 检查玩家是否无敌
+                if (isPlayerInvincible()) {
+                    // 无敌期间不受伤害，子弹直接穿过
+                    continue;
+                }
+                
                 // 玩家被击中
                 startPlayerDeathAnimation();
             }
@@ -2243,6 +2308,15 @@ function triggerCounter(meleeEnemy = null) {
         player.counterProgress = 0;
         player.counterStartX = player.x;
         player.counterStartY = player.y;
+        
+        // 设置单次反击无敌状态（仅在非多重反击时）
+        if (!multiCounterActive) {
+            const invCfg = CONFIG.invincibility;
+            if (invCfg?.enabled && invCfg?.counter?.enabled) {
+                const duration = invCfg.counter.duration + invCfg.counter.bufferTime;
+                setPlayerInvincible(duration, 'counter');
+            }
+        }
         
         // 连击强化粒子
         const burstCount = getEnhancedParticleCount();
@@ -3289,5 +3363,181 @@ function renderCounterEffect() {
     }
 }
 
+// 教程管理器
+class TutorialManager {
+    constructor() {
+        this.currentStep = 0;
+        this.totalSteps = 4;
+        this.steps = [
+            {
+                title: '🎮 移动',
+                description: '使用 WASD 键移动角色',
+                animation: 'move'
+            },
+            {
+                title: '🛡️ 格挡反击',
+                description: '格挡敌人攻击后自动瞬移反击',
+                animation: 'blockCounter'
+            },
+            {
+                title: '⚡ 完美格挡',
+                description: '在敌人攻击瞬间格挡可触发多次反击',
+                animation: 'perfectParry'
+            },
+            {
+                title: '🎯 目标',
+                description: '击杀尽可能多的敌人\n存活尽可能长的时间',
+                animation: 'goal'
+            }
+        ];
+    }
+    
+    show() {
+        document.getElementById('tutorialScreen').style.display = 'flex';
+        this.showStep(0);
+    }
+    
+    showStep(step) {
+        this.currentStep = step;
+        const stepData = this.steps[step];
+        
+        // 更新标题
+        document.getElementById('tutorialTitle').textContent = stepData.title;
+        
+        // 更新说明
+        document.getElementById('tutorialDescription').textContent = stepData.description;
+        
+        // 更新进度指示器
+        this.updateStepIndicator();
+        
+        // 显示对应动画
+        this.showAnimation(stepData.animation);
+        
+        // 更新按钮状态
+        this.updateButtons();
+    }
+    
+    nextStep() {
+        if (this.currentStep < this.totalSteps - 1) {
+            this.showStep(this.currentStep + 1);
+        } else {
+            this.complete();
+        }
+    }
+    
+    prevStep() {
+        if (this.currentStep > 0) {
+            this.showStep(this.currentStep - 1);
+        }
+    }
+    
+    skip() {
+        this.complete();
+    }
+    
+    complete() {
+        
+        // 标记已看过教程
+        localStorage.setItem('hasSeenTutorial', 'true');
+        
+        // 隐藏教程
+        document.getElementById('tutorialScreen').style.display = 'none';
+        
+        // 显示主菜单
+        document.getElementById('startScreen').style.display = 'block';
+    }
+    
+    updateStepIndicator() {
+        const dots = document.querySelectorAll('.step-dot');
+        dots.forEach((dot, index) => {
+            if (index === this.currentStep) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    }
+    
+    updateButtons() {
+        const prevBtn = document.getElementById('tutorialPrevBtn');
+        const nextBtn = document.getElementById('tutorialNextBtn');
+        
+        // 第一步隐藏"上一步"
+        prevBtn.style.visibility = this.currentStep === 0 ? 'hidden' : 'visible';
+        
+        // 最后一步改为"开始游戏"
+        nextBtn.textContent = this.currentStep === this.totalSteps - 1 ? '开始游戏 →' : '下一步 →';
+    }
+    
+    showAnimation(type) {
+        // 隐藏所有动画
+        document.querySelectorAll('.anim-container').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        // 显示对应动画
+        const animEl = document.getElementById(`animation-${type}`);
+        if (animEl) {
+            animEl.style.display = 'flex';
+            
+            // 步骤5特殊处理：数字动画
+            if (type === 'goal') {
+                this.animateStats();
+            }
+        }
+    }
+    
+    animateStats() {
+        // 重置数字
+        document.getElementById('demoKills').textContent = '0';
+        document.getElementById('demoTime').textContent = '0s';
+        document.getElementById('demoCombo').textContent = '0x';
+        
+        // 延迟后开始动画
+        setTimeout(() => {
+            this.countUpNumber('demoKills', 0, 50, 1500);
+            this.countUpNumber('demoTime', 0, 120, 1500, 's');
+            this.countUpNumber('demoCombo', 0, 15, 1500, 'x');
+        }, 300);
+    }
+    
+    countUpNumber(elementId, start, end, duration, suffix = '') {
+        const element = document.getElementById(elementId);
+        const startTime = Date.now();
+        
+        const update = () => {
+            const now = Date.now();
+            const progress = Math.min((now - startTime) / duration, 1);
+            const current = Math.floor(start + (end - start) * progress);
+            element.textContent = current + suffix;
+            
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            }
+        };
+        
+        update();
+    }
+}
+
+// 创建全局教程实例
+const tutorial = new TutorialManager();
+
+// 检查是否首次访问
+function checkFirstVisit() {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    
+    if (!hasSeenTutorial) {
+        // 首次访问，显示教程
+        tutorial.show();
+    } else {
+        // 已看过教程，显示主菜单
+        document.getElementById('startScreen').style.display = 'block';
+    }
+}
+
 // 启动
-window.addEventListener('load', init);
+window.addEventListener('load', () => {
+    init();
+    checkFirstVisit();
+});

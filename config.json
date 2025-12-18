@@ -43,8 +43,8 @@
       "warningRingColor": "rgba(255, 50, 50, 1)"
     },
     "melee": {
-      "size": 12,
-      "speed": 5,
+      "size": 20,
+      "speed": 3,
       "speedVariance": 1.5,
       "attackRange": 150,
       "attackRangeVariance": 40,
@@ -53,10 +53,10 @@
       "attackTime": 150,
       "cooldownTime": 1200,
       "cooldownVariance": 400,
-      "dashDistance": 120,
+      "dashDistance": 200,
       "dashVariance": 30,
       "zigzagIntensity": 0.4,
-      "predictTime": 0.3,
+      "predictTime": 0.5,
       "color": "#fa0",
       "warningColor": "#fff",
       "warningRingColor": "rgba(255, 50, 50, 1)",
@@ -66,17 +66,17 @@
     }
   },
   "bullet": {
-    "radius": 4,
+    "radius": 8,
     "speed": 5,
     "color": "#f55"
   },
   "spawn": {
     "initialInterval": 1500,
-    "minInterval": 400,
+    "minInterval": 800,
     "maxInterval": 2500,
     "intervalDecreasePerSecond": 0,
     "meleeStartTime": 20,
-    "meleeSpawnChance": 0.35,
+    "meleeSpawnChance": 0.2,
     "spawnInField": true,
     "fadeInDuration": 500,
     "invincibleDuration": 300,
@@ -108,7 +108,7 @@
         "enabled": true,
         "baseTarget": 4,
         "increasePerSecond": 0.1,
-        "maxTarget": 10,
+        "maxTarget": 8,
         "underflowMultiplier": 0.7,
         "overflowMultiplier": 1.3
       }
@@ -149,6 +149,59 @@
     "dashDisturbForce": 5,
     "counterDisturbRadius": 50,
     "counterDisturbForce": 8
+  },
+  "tutorial": {
+    "enabled": true,
+    "autoShow": true,
+    "autoPlay": false,
+    "autoPlayDuration": 5000,
+    "canSkip": true,
+    "showOnFirstVisit": true,
+    "keyboardShortcuts": false,
+    "steps": [
+      {
+        "id": "move",
+        "title": "🎮 移动",
+        "description": "使用 WASD 键移动角色",
+        "duration": 5000
+      },
+      {
+        "id": "blockCounter",
+        "title": "🛡️ 格挡反击",
+        "description": "格挡敌人攻击后自动瞬移反击",
+        "duration": 5000
+      },
+      {
+        "id": "perfectParry",
+        "title": "⚡ 完美格挡",
+        "description": "在敌人攻击瞬间格挡可触发多次反击",
+        "duration": 5000
+      },
+      {
+        "id": "goal",
+        "title": "🎯 目标",
+        "description": "击杀尽可能多的敌人\n存活尽可能长的时间",
+        "duration": 5000
+      }
+    ]
+  },
+  "invincibility": {
+    "enabled": true,
+    "counter": {
+      "enabled": true,
+      "duration": 300,
+      "bufferTime": 100
+    },
+    "multiCounter": {
+      "enabled": true,
+      "perCounterDuration": 500,
+      "delayBetweenCounters": 300,
+      "bufferTime": 100
+    },
+    "debug": {
+      "enabled": false,
+      "showInConsole": false
+    }
   },
   "visual": {
     "screenShake": {
