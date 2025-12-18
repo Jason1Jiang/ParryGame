@@ -32,6 +32,23 @@
 - `listenToLeaderboard()` 限制改为 20
 - 只显示前20名记录
 
+### 3. 自动滚动到顶部 ✅
+**功能**: 打开排行榜时自动滚动到最顶部
+
+**场景**:
+- 从主菜单打开排行榜
+- 提交成绩后打开排行榜
+- 切换难度标签后
+
+**原因**:
+- 确保用户看到"你的成绩"区域
+- 避免停留在之前的滚动位置
+- 提供一致的浏览体验
+
+**实现**:
+- 使用 `scrollTop = 0` 滚动到顶部
+- 使用 `setTimeout` 确保 DOM 更新后执行
+
 ## 💻 技术实现
 
 ### index.html 变更
@@ -153,6 +170,9 @@ async function submitScore() {
 async function showLeaderboard(difficulty = 'hardcore', yourRankData = null) {
     // ... 显示界面逻辑 ...
     
+    const leaderboardScreen = document.getElementById('leaderboardScreen');
+    leaderboardScreen.style.display = 'block';
+    
     // 显示或隐藏"你的排名"区域
     const yourRankDisplay = document.getElementById('yourRankDisplay');
     if (yourRankData) {
@@ -163,6 +183,15 @@ async function showLeaderboard(difficulty = 'hardcore', yourRankData = null) {
     } else {
         yourRankDisplay.style.display = 'none';
     }
+    
+    // 滚动到排行榜顶部（新增）
+    setTimeout(() => {
+        leaderboardScreen.scrollTop = 0;
+        const leaderboardBody = document.getElementById('leaderboardBody');
+        if (leaderboardBody) {
+            leaderboardBody.scrollTop = 0;
+        }
+    }, 0);
     
     // 切换到指定难度
     switchDifficulty(difficulty);

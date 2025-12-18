@@ -2631,8 +2631,9 @@ async function showLeaderboard(difficulty = 'hardcore', yourRankData = null) {
     document.getElementById('gameOver').style.display = 'none';
     document.getElementById('nameInputScreen').style.display = 'none';
     
-    // 显示排行榜界面
-    document.getElementById('leaderboardScreen').style.display = 'block';
+    // 显示排行榜界面（使用 flex 以支持居中）
+    const leaderboardScreen = document.getElementById('leaderboardScreen');
+    leaderboardScreen.style.display = 'flex';
     
     // 显示或隐藏"你的排名"区域
     const yourRankDisplay = document.getElementById('yourRankDisplay');
@@ -2644,6 +2645,16 @@ async function showLeaderboard(difficulty = 'hardcore', yourRankData = null) {
     } else {
         yourRankDisplay.style.display = 'none';
     }
+    
+    // 滚动到排行榜顶部
+    setTimeout(() => {
+        leaderboardScreen.scrollTop = 0;
+        // 如果排行榜有滚动条，确保滚动到最顶部
+        const leaderboardBody = document.getElementById('leaderboardBody');
+        if (leaderboardBody) {
+            leaderboardBody.scrollTop = 0;
+        }
+    }, 0);
     
     // 切换到指定难度
     switchDifficulty(difficulty);
@@ -2707,6 +2718,17 @@ function displayLeaderboard(records) {
 function backToMenu() {
     document.getElementById('leaderboardScreen').style.display = 'none';
     document.getElementById('startScreen').style.display = 'block';
+}
+
+// 处理排行榜点击事件（点击外部关闭）
+function handleLeaderboardClick(event) {
+    const leaderboardContent = document.getElementById('leaderboardContent');
+    const leaderboardScreen = document.getElementById('leaderboardScreen');
+    
+    // 如果点击的是背景层（不是内容区域），则关闭排行榜
+    if (event.target === leaderboardScreen) {
+        backToMenu();
+    }
 }
 
 // 渲染
