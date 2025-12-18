@@ -351,116 +351,6 @@ function showTouchFeedback(x, y) {
     setTimeout(() => ripple.remove(), duration);
 }
 
-// 设备检测
-function isMobileDevice() {
-    // 方法1：检测触摸支持
-    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    
-    // 方法2：检测屏幕尺寸
-    const isSmallScreen = window.innerWidth <= 768;
-    
-    // 方法3：检测 User Agent
-    const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    return hasTouch && (isSmallScreen || mobileUA);
-}
-
-// 设置触屏控制
-function setupTouchControls() {
-    if (!canvas) return;
-    
-    // 触摸开始 = 格挡开始
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        keys[' '] = true;  // 模拟空格键
-        
-        // 视觉反馈
-        if (CONFIG.mobile?.touch?.feedbackEnabled) {
-            showTouchFeedback(e.touches[0].clientX, e.touches[0].clientY);
-        }
-    }, { passive: false });
-    
-    // 触摸结束 = 格挡结束
-    canvas.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        keys[' '] = false;
-    }, { passive: false });
-    
-    // 触摸移动时保持格挡
-    canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        // 保持格挡状态
-    }, { passive: false });
-}
-
-// 显示触摸反馈
-function showTouchFeedback(x, y) {
-    const ripple = document.createElement('div');
-    ripple.className = 'touch-ripple';
-    ripple.style.left = x + 'px';
-    ripple.style.top = y + 'px';
-    ripple.style.position = 'fixed';
-    ripple.style.width = '100px';
-    ripple.style.height = '100px';
-    ripple.style.borderRadius = '50%';
-    ripple.style.background = 'radial-gradient(circle, rgba(0, 204, 255, 0.5), transparent)';
-    ripple.style.transform = 'translate(-50%, -50%) scale(0)';
-    ripple.style.pointerEvents = 'none';
-    ripple.style.zIndex = '9999';
-    ripple.style.animation = 'ripple 0.6s ease-out';
-    document.body.appendChild(ripple);
-    
-    // 动画结束后移除
-    setTimeout(() => ripple.remove(), 600);
-}
-
-// 防止默认触摸行为
-function preventDefaultTouchBehaviors() {
-    // 防止双击缩放
-    document.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-    }, { passive: false });
-    
-    // 防止长按菜单
-    document.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-    }, { passive: false });
-    
-    // 防止拖拽
-    document.addEventListener('touchmove', (e) => {
-        if (e.target === canvas) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-}
-
-// 画布自适应
-function resizeCanvas() {
-    if (!canvas || !CONFIG) return;
-    
-    if (isMobile && CONFIG.mobile?.canvas?.autoResize) {
-        // 移动端：全屏显示
-        const containerWidth = window.innerWidth;
-        const containerHeight = window.innerHeight;
-        
-        CONFIG.canvas.width = containerWidth;
-        CONFIG.canvas.height = containerHeight;
-        
-        canvas.width = containerWidth;
-        canvas.height = containerHeight;
-        canvas.style.width = containerWidth + 'px';
-        canvas.style.height = containerHeight + 'px';
-        
-        console.log(`Canvas resized to: ${containerWidth}x${containerHeight}`);
-    } else {
-        // 桌面端：固定尺寸
-        canvas.width = CONFIG.canvas.width;
-        canvas.height = CONFIG.canvas.height;
-        canvas.style.width = CONFIG.canvas.width + 'px';
-        canvas.style.height = CONFIG.canvas.height + 'px';
-    }
-}
-
 // 初始化
 async function init() {
     try {
@@ -481,41 +371,9 @@ async function init() {
             return;
         }
         
-        // 检测设备类型
+        // 检测移动端
         isMobile = isMobileDevice();
         console.log('设备类型:', isMobile ? '移动端' : '桌面端');
-        
-        // 移动端初始化
-        if (isMobile) {
-            // 设置 viewport
-            let viewport = document.querySelector('meta[name="viewport"]');
-            if (!viewport) {
-                viewport = document.createElement('meta');
-                viewport.name = 'viewport';
-                document.head.appendChild(viewport);
-            }
-            viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-            
-            // 添加移动端样式类
-            document.body.classList.add('mobile-mode');
-            
-            // 设置触屏控制
-            setupTouchControls();
-            
-            // 防止默认触摸行为
-            preventDefaultTouchBehaviors();
-            
-            // 调整画布大小
-            resizeCanvas();
-            
-            // 监听窗口大小变化
-            window.addEventListener('resize', resizeCanvas);
-            
-            // 监听屏幕方向变化
-            window.addEventListener('orientationchange', () => {
-                setTimeout(resizeCanvas, 100);
-            });
-        }
         
         // 初始化音频（包括BGM）
         initAudio();
@@ -2236,27 +2094,25 @@ function updatePlayer() {
         return;
     }
     
-    // 移动（移动端禁用）
-    if (!isMobile || !CONFIG.mobile?.disableMovement) {
-        let dx = 0, dy = 0;
-        if (keys['w']) dy -= 1;
-        if (keys['s']) dy += 1;
-        if (keys['a']) dx -= 1;
-        if (keys['d']) dx += 1;
+    // 移动
+    let dx = 0, dy = 0;
+    if (keys['w']) dy -= 1;
+    if (keys['s']) dy += 1;
+    if (keys['a']) dx -= 1;
+    if (keys['d']) dx += 1;
+    
+    if (dx !== 0 || dy !== 0) {
+        const len = Math.sqrt(dx * dx + dy * dy);
+        dx /= len;
+        dy /= len;
+        player.x += dx * CONFIG.player.speed;
+        player.y += dy * CONFIG.player.speed;
         
-        if (dx !== 0 || dy !== 0) {
-            const len = Math.sqrt(dx * dx + dy * dy);
-            dx /= len;
-            dy /= len;
-            player.x += dx * CONFIG.player.speed;
-            player.y += dy * CONFIG.player.speed;
-            
-            // 边界限制
-            player.x = Math.max(player.radius, Math.min(CONFIG.canvas.width - player.radius, player.x));
-            player.y = Math.max(player.radius, Math.min(CONFIG.canvas.height - player.radius, player.y));
-            
-            disturbParticles(player.x, player.y, CONFIG.effects.movementDisturbRadius, CONFIG.effects.movementDisturbForce);
-        }
+        // 边界限制
+        player.x = Math.max(player.radius, Math.min(CONFIG.canvas.width - player.radius, player.x));
+        player.y = Math.max(player.radius, Math.min(CONFIG.canvas.height - player.radius, player.y));
+        
+        disturbParticles(player.x, player.y, CONFIG.effects.movementDisturbRadius, CONFIG.effects.movementDisturbForce);
     }
     
     // 格挡（格挡键状态已在 updateBlockKeyState 中更新）
