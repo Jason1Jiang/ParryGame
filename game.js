@@ -2573,6 +2573,142 @@ function gameOver() {
     stopBattleBGM();
 }
 
+// 显示名字输入界面
+function showNameInput() {
+    // 隐藏游戏结束界面
+    document.getElementById('gameOver').style.display = 'none';
+    // 显示名字输入界面
+    document.getElementById('nameInputScreen').style.display = 'block';
+    document.getElementById('playerNameInput').value = '';
+    document.getElementById('playerNameInput').focus();
+}
+
+// 提交分数
+async function submitScore() {
+    const playerName = document.getElementById('playerNameInput').value.trim();
+    
+    if (!playerName) {
+        alert('请输入你的名字！');
+        return;
+    }
+    
+    // 隐藏名字输入界面
+    document.getElementById('nameInputScreen').style.display = 'none';
+    
+    try {
+        // 提交到排行榜（参数顺序：playerName, kills, survivalTime, difficulty）
+        const result = await leaderboard.submitScore(playerName, kills, gameTime, selectedDifficulty);
+        
+        if (result.success) {
+            console.log('分数提交成功！');
+            
+            // 提交成功后显示排行榜，并传递排名信息
+            await showLeaderboard(selectedDifficulty, {
+                rank: result.rank,
+                kills: kills,
+                time: gameTime
+            });
+        } else {
+            throw new Error('提交失败');
+        }
+    } catch (error) {
+        console.error('分数提交失败:', error);
+        alert('分数提交失败，请检查网络连接！');
+    }
+}
+
+// 跳过提交
+function skipSubmit() {
+    document.getElementById('nameInputScreen').style.display = 'none';
+    document.getElementById('gameOver').style.display = 'block';
+}
+
+// 显示排行榜
+async function showLeaderboard(difficulty = 'hardcore', yourRankData = null) {
+    // 隐藏其他界面
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('difficultySelect').style.display = 'none';
+    document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('nameInputScreen').style.display = 'none';
+    
+    // 显示排行榜界面
+    document.getElementById('leaderboardScreen').style.display = 'block';
+    
+    // 显示或隐藏"你的排名"区域
+    const yourRankDisplay = document.getElementById('yourRankDisplay');
+    if (yourRankData) {
+        yourRankDisplay.style.display = 'block';
+        document.getElementById('yourRank').textContent = `第 ${yourRankData.rank} 名`;
+        document.getElementById('yourKills').textContent = yourRankData.kills;
+        document.getElementById('yourTime').textContent = yourRankData.time;
+    } else {
+        yourRankDisplay.style.display = 'none';
+    }
+    
+    // 切换到指定难度
+    switchDifficulty(difficulty);
+}
+
+// 切换难度标签
+async function switchDifficulty(difficulty) {
+    // 更新标签样式
+    const tabs = document.querySelectorAll('.difficulty-tab');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    const difficultyMap = {
+        'hardcore': 0,
+        'balanced': 1,
+        'casual': 2
+    };
+    tabs[difficultyMap[difficulty]].classList.add('active');
+    
+    // 加载排行榜数据
+    try {
+        const records = await leaderboard.getLeaderboard(difficulty);
+        displayLeaderboard(records);
+    } catch (error) {
+        console.error('加载排行榜失败:', error);
+        document.getElementById('leaderboardBody').innerHTML = '<tr><td colspan="4">加载失败</td></tr>';
+    }
+}
+
+// 显示排行榜数据
+function displayLeaderboard(records) {
+    const tbody = document.getElementById('leaderboardBody');
+    
+    if (!records || records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">暂无记录</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    records.forEach((record, index) => {
+        const rank = index + 1;
+        let medal = '';
+        
+        if (rank === 1) medal = '🥇';
+        else if (rank === 2) medal = '🥈';
+        else if (rank === 3) medal = '🥉';
+        
+        html += `
+            <tr>
+                <td><span class="rank-medal">${medal}</span> ${rank}</td>
+                <td>${record.playerName}</td>
+                <td>${record.kills}</td>
+                <td>${record.survivalTime}s</td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+// 返回主菜单
+function backToMenu() {
+    document.getElementById('leaderboardScreen').style.display = 'none';
+    document.getElementById('startScreen').style.display = 'block';
+}
+
 // 渲染
 function render() {
     ctx.save();

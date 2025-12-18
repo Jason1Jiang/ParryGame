@@ -366,6 +366,130 @@
             color: #F5F5F5;
             border-color: #666;
         }
+        #leaderboardScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(245, 245, 245, 0.98);
+            padding: 50px 60px;
+            border: 2px solid #000;
+            border-radius: 12px;
+            text-align: center;
+            color: #000;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #leaderboardScreen h1 {
+            font-size: 72px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            letter-spacing: 6px;
+        }
+        #leaderboardScreen .subtitle {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .difficulty-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .difficulty-tab {
+            padding: 10px 25px;
+            background: transparent;
+            border: 2px solid #666;
+            border-radius: 20px;
+            color: #666;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .difficulty-tab:hover {
+            border-color: #000;
+            color: #000;
+        }
+        .difficulty-tab.active {
+            background: #000;
+            color: #F5F5F5;
+            border-color: #000;
+        }
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .leaderboard-table th {
+            padding: 12px;
+            background: #000;
+            color: #F5F5F5;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .leaderboard-table td {
+            padding: 12px;
+            border-bottom: 1px solid #DDD;
+            font-size: 16px;
+        }
+        .leaderboard-table tr:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        .rank-medal {
+            font-size: 20px;
+        }
+        #nameInputScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(245, 245, 245, 0.98);
+            padding: 50px 60px;
+            border: 2px solid #000;
+            border-radius: 12px;
+            text-align: center;
+            color: #000;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        #nameInputScreen h2 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        #nameInputScreen input {
+            padding: 15px 20px;
+            font-size: 18px;
+            border: 2px solid #000;
+            border-radius: 8px;
+            width: 300px;
+            margin-bottom: 20px;
+            font-family: 'Arial', sans-serif;
+        }
+        #nameInputScreen button {
+            padding: 12px 40px;
+            font-size: 18px;
+            background: transparent;
+            border: 3px solid #000;
+            border-radius: 25px;
+            color: #000;
+            cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 3px;
+            transition: all 0.3s;
+            margin: 0 10px;
+        }
+        #nameInputScreen button:hover {
+            background: #000;
+            color: #F5F5F5;
+        }
     </style>
 </head>
 <body>
@@ -427,6 +551,7 @@
             <div class="intro-line">以守为攻 · 一击制胜</div>
         </div>
         <button onclick="showDifficultySelect()">START</button>
+        <button onclick="showLeaderboard()" style="margin-top: 15px;">RANKS</button>
         <div class="hint">WASD 移动 · 空格/鼠标 格挡</div>
     </div>
     <div id="difficultySelect">
@@ -464,8 +589,56 @@
             </div>
         </div>
         <div class="divider"></div>
-        <button onclick="restartGame()">RESTART</button>
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            <button onclick="restartGame()">RESTART</button>
+            <button onclick="showNameInput()">SUBMIT SCORE</button>
+        </div>
     </div>
+    <div id="nameInputScreen">
+        <h2>输入你的名字</h2>
+        <input type="text" id="playerNameInput" maxlength="20" placeholder="玩家名称" />
+        <br>
+        <button onclick="submitScore()">提交</button>
+        <button onclick="skipSubmit()">跳过</button>
+    </div>
+    <div id="leaderboardScreen">
+        <h1>RANKS</h1>
+        <div class="subtitle">排行榜</div>
+        <div id="yourRankDisplay" style="display: none; margin: 20px 0; padding: 20px; background: rgba(0, 0, 0, 0.05); border: 2px solid #000; border-radius: 8px;">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #000;">🎯 你的成绩</div>
+            <div style="display: flex; justify-content: space-around; font-size: 16px;">
+                <div><span style="color: #666;">排名:</span> <span id="yourRank" style="font-weight: 700; color: #E74C3C; font-size: 24px;">-</span></div>
+                <div><span style="color: #666;">击杀:</span> <span id="yourKills" style="font-weight: 700;">-</span></div>
+                <div><span style="color: #666;">时间:</span> <span id="yourTime" style="font-weight: 700;">-</span>s</div>
+            </div>
+        </div>
+        <div class="difficulty-tabs">
+            <button class="difficulty-tab active" onclick="switchDifficulty('hardcore')">硬核</button>
+            <button class="difficulty-tab" onclick="switchDifficulty('balanced')">平衡</button>
+            <button class="difficulty-tab" onclick="switchDifficulty('casual')">休闲</button>
+        </div>
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>排名</th>
+                    <th>玩家</th>
+                    <th>击杀</th>
+                    <th>时间</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+                <tr><td colspan="4">加载中...</td></tr>
+            </tbody>
+        </table>
+        <button id="backButton" onclick="backToMenu()">返回</button>
+    </div>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Firebase Config and Leaderboard -->
+    <script src="firebase-config.js"></script>
+    <script src="leaderboard.js"></script>
+    <!-- Game Script -->
     <script src="game.js"></script>
 </body>
 </html>

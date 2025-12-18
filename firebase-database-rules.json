@@ -1,0 +1,14 @@
+{
+  "rules": {
+    "leaderboard": {
+      "$difficulty": {
+        ".read": true,
+        ".write": true,
+        ".indexOn": ["score", "kills", "survivalTime"],
+        "$recordId": {
+          ".validate": "newData.hasChildren(['playerName', 'kills', 'survivalTime', 'score', 'difficulty', 'timestamp'])"
+        }
+      }
+    }
+  }
+}
