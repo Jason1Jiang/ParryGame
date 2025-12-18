@@ -219,7 +219,12 @@
       "bonusEnergy": 20,
       "screenShakeIntensity": 20,
       "timeSlowScale": 0.05,
-      "timeSlowDuration": 500
+      "timeSlowDuration": 500,
+      "comboScaling": {
+        "enabled": true,
+        "thresholds": [0, 3, 5, 10, 15, 20, 30, 40, 50],
+        "counts": [2, 3, 4, 5, 6, 7, 8, 9, 10]
+      }
     },
     "enemyDeath": {
       "explosionParticles": 40,
@@ -229,7 +234,7 @@
     },
     "combo": {
       "enabled": true,
-      "timeout": 3000,
+      "timeout": 10000,
       "colors": ["#fff", "#ff0", "#f80", "#f0f", "#0ff"],
       "slashEnhancement": {
         "enabled": true,
@@ -244,7 +249,7 @@
       "enabled": true,
       "bonusPerCombo": 5,
       "maxCombo": 5,
-      "comboTimeout": 2000,
+      "comboTimeout": 10000,
       "specialEffects": {
         "enabled": true,
         "rainbowSlash": true,

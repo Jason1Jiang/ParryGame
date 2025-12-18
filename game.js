@@ -1405,6 +1405,26 @@ function isPerfectParry() {
     return timeSinceLastParry <= cfg.timeWindow;
 }
 
+// 获取当前连击对应的多重反击次数上限
+function getMultiCounterLimit() {
+    const cfg = CONFIG.visual?.multiCounter;
+    if (!cfg || !cfg.enabled) return 3;
+    
+    const scaling = cfg.comboScaling;
+    if (!scaling || !scaling.enabled) {
+        return cfg.maxTargets; // 如果未启用连击缩放，返回默认值
+    }
+    
+    // 根据连击数查找对应的次数
+    for (let i = scaling.thresholds.length - 1; i >= 0; i--) {
+        if (comboCount >= scaling.thresholds[i]) {
+            return scaling.counts[i];
+        }
+    }
+    
+    return scaling.counts[0]; // 默认返回第一个值
+}
+
 // 检查是否触发多重反击
 function checkMultiCounter() {
     const cfg = CONFIG.visual?.multiCounter;
@@ -1422,6 +1442,9 @@ function triggerMultiCounter() {
     const cfg = CONFIG.visual?.multiCounter;
     if (!cfg || !cfg.enabled || multiCounterActive) return;
     
+    // 获取当前连击对应的多重反击次数上限
+    const maxTargets = getMultiCounterLimit();
+    
     // 找到最近的多个敌人（排除无敌的敌人）
     const targets = [];
     const validEnemies = enemies.filter(e => !isEnemyInvincible(e));
@@ -1431,7 +1454,7 @@ function triggerMultiCounter() {
         return distA - distB;
     });
     
-    for (let i = 0; i < Math.min(cfg.maxTargets, sortedEnemies.length); i++) {
+    for (let i = 0; i < Math.min(maxTargets, sortedEnemies.length); i++) {
         targets.push(sortedEnemies[i]);
     }
     

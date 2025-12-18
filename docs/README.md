@@ -12,6 +12,16 @@
   - 视觉效果规划
   - 能量系统设计
 
+## 🚀 战略规划
+
+项目未来发展方向的战略规划文档。
+
+- **[FUTURE_OPTIMIZATION.md](FUTURE_OPTIMIZATION.md)** - 项目优化方向战略规划 🆕
+  - 十二大优化方向（核心玩法、游戏模式、敌人系统、进度系统等）
+  - 优先级划分（高/中/低）
+  - 短中长期实施计划
+  - 从游戏设计、用户体验、技术架构等宏观角度思考
+
 ## 🎮 游戏玩法文档 (`gameplay/`)
 
 刷怪系统和游戏机制的详细文档。
@@ -214,6 +224,16 @@ docs/
 ## 🔄 文档更新
 
 文档会随着游戏版本更新而持续更新。最新的功能说明请查看 `visual-updates/` 目录下的最新版本文档。
+
+---
+
+## 📝 文档更新记录
+
+### 最新更新
+- **2025-12-18**: 新增 [FUTURE_OPTIMIZATION.md](FUTURE_OPTIMIZATION.md) - 项目优化方向战略规划 🆕
+- **2025-12-18**: 新增 [PLAYER_DEATH_v3.3.md](visual-updates/PLAYER_DEATH_v3.3.md) - 玩家死亡动画系统
+- **2025-12-17**: 新增 [EDGE_GLOW_v3.2.md](visual-updates/EDGE_GLOW_v3.2.md) - Canvas边缘发光效果
+- **2025-12-17**: 新增 [MENU_REFRESH_v3.1.md](visual-updates/MENU_REFRESH_v3.1.md) - 主界面优化设计
 
 ---
 
