@@ -951,87 +951,6 @@
             0%, 100% { text-shadow: 0 0 5px #000; }
             50% { text-shadow: 0 0 20px #0ff, 0 0 30px #0ff; }
         }
-        
-        /* 移动端样式 */
-        @media (max-width: 768px) {
-            body {
-                font-size: 14px;
-            }
-            
-            h1 {
-                font-size: 36px !important;
-            }
-            
-            h2 {
-                font-size: 18px !important;
-            }
-            
-            button {
-                font-size: 16px !important;
-                padding: 12px 30px !important;
-                min-width: 120px;
-            }
-            
-            #ui {
-                font-size: 16px !important;
-                padding: 10px !important;
-            }
-            
-            #energyBar {
-                height: 15px !important;
-            }
-            
-            #gameOver {
-                padding: 30px !important;
-                max-width: 90% !important;
-            }
-            
-            #leaderboardScreen {
-                padding: 20px !important;
-                max-width: 95% !important;
-            }
-            
-            .tutorial-content {
-                padding: 30px !important;
-                width: 90% !important;
-            }
-            
-            .desktop-only {
-                display: none !important;
-            }
-            
-            .mobile-only {
-                display: block !important;
-            }
-        }
-        
-        /* 横屏样式 */
-        @media (orientation: landscape) and (max-height: 500px) {
-            #ui {
-                top: 10px !important;
-                font-size: 14px !important;
-            }
-            
-            #controls {
-                bottom: 10px !important;
-                font-size: 12px !important;
-            }
-        }
-        
-        /* 桌面端样式 */
-        @media (min-width: 769px) {
-            .mobile-only {
-                display: none !important;
-            }
-        }
-        
-        /* 触摸反馈动画 */
-        @keyframes ripple {
-            to {
-                transform: translate(-50%, -50%) scale(2);
-                opacity: 0;
-            }
-        }
     </style>
 </head>
 <body>
@@ -1049,14 +968,6 @@
         WASD 移动<br>
         空格/鼠标 格挡
     </div>
-    
-    <!-- 移动端提示 -->
-    <div id="mobileHint" class="mobile-only" style="display: none; position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: #fff; padding: 15px 30px; border-radius: 25px; font-size: 18px; z-index: 1000;">
-        <div class="hint-text">
-            👆 点击屏幕格挡
-        </div>
-    </div>
-    
     <div id="debugToggle" onclick="toggleDebug()">调试 [F3]</div>
     <div id="debugPanel">
         <h3>⚙️ 刷怪系统调试</h3>

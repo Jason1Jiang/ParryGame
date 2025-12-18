@@ -451,31 +451,7 @@ function startGame() {
     comboGlowDuration = 0;
     comboGlowStartTime = 0;
     
-    // 移动端：显示操作提示
-    if (isMobile && CONFIG.mobile?.ui?.showHint) {
-        showMobileHint();
-    }
-    
     gameLoop();
-}
-
-// 显示移动端提示
-function showMobileHint() {
-    const hint = document.getElementById('mobileHint');
-    if (!hint) return;
-    
-    hint.style.display = 'block';
-    
-    // 3秒后淡出
-    const duration = CONFIG.mobile?.ui?.hintDuration || 3000;
-    setTimeout(() => {
-        hint.style.transition = 'opacity 0.5s ease-out';
-        hint.style.opacity = '0';
-        setTimeout(() => {
-            hint.style.display = 'none';
-            hint.style.opacity = '1';
-        }, 500);
-    }, duration);
 }
 
 // 重新开始

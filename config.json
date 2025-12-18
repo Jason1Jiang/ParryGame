@@ -478,38 +478,5 @@
       "fadeOutDelay": 1000,
       "fadeOutDuration": 200
     }
-  },
-  "mobile": {
-    "enabled": true,
-    "autoDetect": true,
-    "disableMovement": true,
-    "touch": {
-      "enabled": true,
-      "feedbackEnabled": true,
-      "feedbackDuration": 600,
-      "preventZoom": true,
-      "preventScroll": true
-    },
-    "spawn": {
-      "forceInScreen": true,
-      "screenMargin": 80,
-      "minDistanceFromPlayer": 150
-    },
-    "gameplay": {
-      "rangedDistanceMultiplier": 1.2,
-      "meleeWarningMultiplier": 1.3,
-      "spawnIntervalMultiplier": 1.15
-    },
-    "ui": {
-      "showHint": true,
-      "hintDuration": 3000,
-      "fullscreen": true
-    },
-    "canvas": {
-      "autoResize": true,
-      "maintainAspectRatio": false,
-      "minWidth": 320,
-      "minHeight": 480
-    }
   }
 }
