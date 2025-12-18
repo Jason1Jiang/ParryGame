@@ -2374,6 +2374,9 @@ function startPlayerDeathAnimation() {
     deathFadeAlpha = 0;
     deathParticles = [];
     
+    // 播放死亡音效
+    playSound('death');
+    
     // 触发强烈视觉效果
     triggerScreenShake(cfg.screenShakeIntensity);
     triggerTimeScale(cfg.timeSlowScale, cfg.timeSlowDuration);

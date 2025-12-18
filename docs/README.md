@@ -26,6 +26,18 @@
 
 刷怪系统和游戏机制的详细文档。
 
+- **[MULTI_COUNTER_OPTIMIZATION_v3.4.md](gameplay/MULTI_COUNTER_OPTIMIZATION_v3.4.md)** - v3.4 多重反击连击关联系统 ⚡🔥 (最新)
+  - 连击数与多重反击次数关联
+  - 线性增长方案（2-10次）
+  - 正向反馈循环设计
+  - 完整的平衡性分析
+
+- **[MULTI_COUNTER_TEST_v3.4.md](gameplay/MULTI_COUNTER_TEST_v3.4.md)** - v3.4 测试指南 🧪
+  - 详细测试步骤
+  - 平衡性测试方法
+  - 调试技巧
+  - 问题排查指南
+
 - **[SPAWN_SYSTEM_v2.9.md](gameplay/SPAWN_SYSTEM_v2.9.md)** - v2.9 调试界面与难度预设 ⚙️
   - 实时调试界面
   - 三种难度预设（硬核/平衡/休闲）
@@ -230,7 +242,9 @@ docs/
 ## 📝 文档更新记录
 
 ### 最新更新
-- **2025-12-18**: 新增 [FUTURE_OPTIMIZATION.md](FUTURE_OPTIMIZATION.md) - 项目优化方向战略规划 🆕
+- **2025-12-18**: 新增 [MULTI_COUNTER_OPTIMIZATION_v3.4.md](gameplay/MULTI_COUNTER_OPTIMIZATION_v3.4.md) - 多重反击连击关联系统 ⚡🔥
+- **2025-12-18**: 新增 [MULTI_COUNTER_TEST_v3.4.md](gameplay/MULTI_COUNTER_TEST_v3.4.md) - v3.4 测试指南
+- **2025-12-18**: 新增 [FUTURE_OPTIMIZATION.md](FUTURE_OPTIMIZATION.md) - 项目优化方向战略规划
 - **2025-12-18**: 新增 [PLAYER_DEATH_v3.3.md](visual-updates/PLAYER_DEATH_v3.3.md) - 玩家死亡动画系统
 - **2025-12-17**: 新增 [EDGE_GLOW_v3.2.md](visual-updates/EDGE_GLOW_v3.2.md) - Canvas边缘发光效果
 - **2025-12-17**: 新增 [MENU_REFRESH_v3.1.md](visual-updates/MENU_REFRESH_v3.1.md) - 主界面优化设计
@@ -238,4 +252,4 @@ docs/
 ---
 
 **最后更新**: 2025-12-18  
-**当前版本**: v3.3 (玩家死亡动画系统)
+**当前版本**: v3.4 (多重反击连击关联系统)
