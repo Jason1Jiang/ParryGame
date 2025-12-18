@@ -2,6 +2,7 @@
 let CONFIG = null;
 let selectedDifficulty = 'balanced'; // 默认平衡模式
 let debugMode = false; // 调试模式
+let isMobile = false; // 移动设备标识
 
 // 难度预设配置
 const DIFFICULTY_PRESETS = {
@@ -77,6 +78,7 @@ let canvas, ctx;
 let gameState = 'start'; // start, playing, gameOver
 let player, particles, enemies, bullets;
 let keys = {};
+let isMobile = false; // 移动端标识
 let energy, kills, gameTime, startTime;
 let lastEnemySpawn = 0;
 let enemySpawnInterval = 2000;
@@ -281,6 +283,74 @@ function updateDebugInfo() {
     document.getElementById('debugDifficulty').textContent = difficultyName;
 }
 
+// 设备检测
+function isMobileDevice() {
+    // 方法1：检测触摸支持
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    // 方法2：检测屏幕尺寸
+    const isSmallScreen = window.innerWidth <= 768;
+    
+    // 方法3：检测 User Agent
+    const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    return hasTouch && (isSmallScreen || mobileUA);
+}
+
+// 设置触屏事件
+function setupTouchEvents() {
+    const canvas = document.getElementById('gameCanvas');
+    if (!canvas) return;
+    
+    // 触摸开始 = 格挡开始
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        keys[' '] = true;
+        
+        // 触摸反馈
+        if (CONFIG.mobile?.touch?.feedbackEnabled) {
+            showTouchFeedback(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, { passive: false });
+    
+    // 触摸结束 = 格挡结束
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        keys[' '] = false;
+    }, { passive: false });
+    
+    // 触摸移动时保持格挡
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+    
+    // 防止双击缩放
+    if (CONFIG.mobile?.touch?.preventZoom) {
+        document.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+    }
+    
+    // 防止长按菜单
+    document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+    
+    console.log('触屏事件已设置');
+}
+
+// 显示触摸反馈
+function showTouchFeedback(x, y) {
+    const ripple = document.createElement('div');
+    ripple.className = 'touch-ripple';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    document.body.appendChild(ripple);
+    
+    const duration = CONFIG.mobile?.touch?.feedbackDuration || 600;
+    setTimeout(() => ripple.remove(), duration);
+}
+
 // 初始化
 async function init() {
     try {
@@ -301,6 +371,10 @@ async function init() {
             return;
         }
         
+        // 检测移动端
+        isMobile = isMobileDevice();
+        console.log('设备类型:', isMobile ? '移动端' : '桌面端');
+        
         // 初始化音频（包括BGM）
         initAudio();
         
@@ -316,6 +390,11 @@ async function init() {
         console.error('初始化失败:', error);
         alert('游戏初始化失败: ' + error.message);
         return;
+    }
+    
+    // 移动端触屏事件
+    if (isMobile && CONFIG.mobile?.touch?.enabled) {
+        setupTouchEvents();
     }
     
     // 键盘事件
