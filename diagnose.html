@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>诊断工具</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #0f0;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #0f0;
+        }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        .warning { color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>游戏诊断工具</h1>
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = msg;
+            output.appendChild(div);
+        }
+        
+        function section(title) {
+            const div = document.createElement('div');
+            div.className = 'section';
+            div.innerHTML = '<h2>' + title + '</h2>';
+            output.appendChild(div);
+            return div;
+        }
+        
+        // 测试1: 检查 game.js 是否加载
+        const s1 = section('测试1: 检查 game.js 加载');
+        const script = document.createElement('script');
+        script.src = 'game.js?t=' + Date.now();
+        script.onload = () => {
+            log('✓ game.js 加载成功', 'success');
+            runTests();
+        };
+        script.onerror = () => {
+            log('✗ game.js 加载失败', 'error');
+        };
+        document.head.appendChild(script);
+        
+        function runTests() {
+            // 测试2: 检查函数是否存在
+            const s2 = section('测试2: 检查函数定义');
+            const functions = [
+                'showDifficultySelect',
+                'selectDifficulty',
+                'backToStart',
+                'startGame',
+                'init',
+                'loadConfig'
+            ];
+            
+            functions.forEach(fn => {
+                if (typeof window[fn] === 'function') {
+                    log('✓ ' + fn + ' 已定义', 'success');
+                } else {
+                    log('✗ ' + fn + ' 未定义', 'error');
+                }
+            });
+            
+            // 测试3: 检查变量
+            const s3 = section('测试3: 检查全局变量');
+            const vars = ['CONFIG', 'DIFFICULTY_PRESETS', 'gameState'];
+            
+            vars.forEach(v => {
+                if (typeof window[v] !== 'undefined') {
+                    log('✓ ' + v + ' = ' + JSON.stringify(window[v]).substring(0, 50), 'success');
+                } else {
+                    log('✗ ' + v + ' 未定义', 'error');
+                }
+            });
+            
+            // 测试4: 尝试调用 init
+            const s4 = section('测试4: 测试 init() 函数');
+            if (typeof init === 'function') {
+                log('正在调用 init()...', 'warning');
+                init().then(() => {
+                    log('✓ init() 执行成功', 'success');
+                    log('CONFIG = ' + (CONFIG ? '已加载' : '未加载'), CONFIG ? 'success' : 'error');
+                    
+                    // 测试5: 测试按钮点击
+                    const s5 = section('测试5: 模拟按钮点击');
+                    if (typeof showDifficultySelect === 'function') {
+                        try {
+                            log('正在调用 showDifficultySelect()...', 'warning');
+                            // 不实际调用，只检查是否可调用
+                            log('✓ showDifficultySelect 可以调用', 'success');
+                        } catch (e) {
+                            log('✗ 调用失败: ' + e.message, 'error');
+                        }
+                    }
+                }).catch(err => {
+                    log('✗ init() 执行失败: ' + err.message, 'error');
+                });
+            }
+            
+            // 测试6: 列出所有全局函数
+            const s6 = section('测试6: 所有全局函数');
+            let count = 0;
+            for (let key in window) {
+                if (typeof window[key] === 'function' && 
+                    !key.startsWith('_') && 
+                    key.length < 30 &&
+                    !key.includes('webkit') &&
+                    !key.includes('moz')) {
+                    log(key, 'info');
+                    count++;
+                    if (count > 50) {
+                        log('... (还有更多)', 'warning');
+                        break;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

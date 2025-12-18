@@ -283,23 +283,40 @@ function updateDebugInfo() {
 
 // 初始化
 async function init() {
-    canvas = document.getElementById('gameCanvas');
-    ctx = canvas.getContext('2d');
-    
-    // 加载配置
-    await loadConfig();
-    
-    // 初始化音频（包括BGM）
-    initAudio();
-    
-    // 初始化菜单粒子
-    particles = [];
-    for (let i = 0; i < CONFIG.particles.count; i++) {
-        particles.push(createParticle());
+    try {
+        canvas = document.getElementById('gameCanvas');
+        if (!canvas) {
+            console.error('无法找到 gameCanvas 元素');
+            return;
+        }
+        ctx = canvas.getContext('2d');
+        
+        // 加载配置
+        await loadConfig();
+        
+        // 检查配置是否加载成功
+        if (!CONFIG) {
+            console.error('配置加载失败，无法初始化游戏');
+            alert('游戏配置加载失败，请刷新页面重试');
+            return;
+        }
+        
+        // 初始化音频（包括BGM）
+        initAudio();
+        
+        // 初始化菜单粒子
+        particles = [];
+        for (let i = 0; i < CONFIG.particles.count; i++) {
+            particles.push(createParticle());
+        }
+        
+        // 启动菜单粒子循环
+        menuParticleLoop();
+    } catch (error) {
+        console.error('初始化失败:', error);
+        alert('游戏初始化失败: ' + error.message);
+        return;
     }
-    
-    // 启动菜单粒子循环
-    menuParticleLoop();
     
     // 键盘事件
     document.addEventListener('keydown', (e) => {
@@ -921,13 +938,17 @@ function createDeathAnimation(enemy) {
     for (let i = 0; i < cfg.explosionParticles; i++) {
         const angle = (Math.PI * 2 * i) / cfg.explosionParticles + Math.random() * 0.5;
         const speed = cfg.explosionSpeed + Math.random() * 3;
+        // 获取粒子颜色（优先使用配置，否则使用默认值）
+        const particleColors = cfg.particleColors || { ranged: '#f55', melee: '#fa0' };
+        const particleColor = enemy.type === 'ranged' ? particleColors.ranged : particleColors.melee;
+        
         lastAnim.particles.push({
             x: enemy.x,
             y: enemy.y,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
             size: Math.random() * 3 + 1,
-            color: enemy.type === 'ranged' ? '#f55' : '#fa0',
+            color: particleColor,
             alpha: 1
         });
     }
@@ -3537,7 +3558,7 @@ function checkFirstVisit() {
 }
 
 // 启动
-window.addEventListener('load', () => {
-    init();
+window.addEventListener('load', async () => {
+    await init();
     checkFirstVisit();
 });

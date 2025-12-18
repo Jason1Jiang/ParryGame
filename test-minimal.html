@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>最小化测试</title>
+</head>
+<body>
+    <h1>最小化测试</h1>
+    <button onclick="showDifficultySelect()">测试按钮</button>
+    <div id="result"></div>
+
+    <script>
+        // 直接定义函数（不依赖 game.js）
+        function showDifficultySelect() {
+            document.getElementById('result').textContent = '函数被调用了！';
+            console.log('showDifficultySelect 被调用');
+        }
+        
+        // 测试函数是否存在
+        console.log('showDifficultySelect 类型:', typeof showDifficultySelect);
+        console.log('window.showDifficultySelect 类型:', typeof window.showDifficultySelect);
+    </script>
+    
+    <!-- 现在加载 game.js，看看是否会覆盖 -->
+    <script src="game.js"></script>
+    
+    <script>
+        // 再次检查
+        setTimeout(() => {
+            console.log('加载 game.js 后:');
+            console.log('showDifficultySelect 类型:', typeof showDifficultySelect);
+            console.log('window.showDifficultySelect 类型:', typeof window.showDifficultySelect);
+            
+            document.getElementById('result').innerHTML += '<br>game.js 加载完成';
+            document.getElementById('result').innerHTML += '<br>showDifficultySelect 类型: ' + typeof showDifficultySelect;
+        }, 1000);
+    </script>
+</body>
+</html>

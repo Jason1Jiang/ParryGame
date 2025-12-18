@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Function Test</title>
+</head>
+<body>
+    <h1>Function Test</h1>
+    <button onclick="testFunctions()">Test Functions</button>
+    <div id="result"></div>
+
+    <script src="game.js"></script>
+    <script>
+        function testFunctions() {
+            const result = document.getElementById('result');
+            result.innerHTML = '';
+            
+            // Test if functions exist
+            result.innerHTML += '<p>showDifficultySelect exists: ' + (typeof showDifficultySelect === 'function') + '</p>';
+            result.innerHTML += '<p>selectDifficulty exists: ' + (typeof selectDifficulty === 'function') + '</p>';
+            result.innerHTML += '<p>backToStart exists: ' + (typeof backToStart === 'function') + '</p>';
+            result.innerHTML += '<p>startGame exists: ' + (typeof startGame === 'function') + '</p>';
+            
+            // List all global functions
+            result.innerHTML += '<h2>All global functions:</h2>';
+            for (let key in window) {
+                if (typeof window[key] === 'function' && !key.startsWith('_')) {
+                    result.innerHTML += '<p>' + key + '</p>';
+                }
+            }
+        }
+        
+        // Auto test on load
+        window.addEventListener('load', () => {
+            setTimeout(testFunctions, 1000);
+        });
+    </script>
+</body>
+</html>

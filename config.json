@@ -108,7 +108,7 @@
         "enabled": true,
         "baseTarget": 4,
         "increasePerSecond": 0.1,
-        "maxTarget": 8,
+        "maxTarget": 10,
         "underflowMultiplier": 0.7,
         "overflowMultiplier": 1.3
       }
@@ -189,14 +189,14 @@
     "enabled": true,
     "counter": {
       "enabled": true,
-      "duration": 300,
-      "bufferTime": 100
+      "duration": 200,
+      "bufferTime": 50
     },
     "multiCounter": {
       "enabled": true,
-      "perCounterDuration": 500,
-      "delayBetweenCounters": 300,
-      "bufferTime": 100
+      "perCounterDuration": 300,
+      "delayBetweenCounters": 200,
+      "bufferTime": 50
     },
     "debug": {
       "enabled": false,
@@ -283,7 +283,11 @@
       "explosionParticles": 40,
       "explosionSpeed": 8,
       "shrinkDuration": 200,
-      "fadeOutDuration": 300
+      "fadeOutDuration": 300,
+      "particleColors": {
+        "ranged": "#cf8585",
+        "melee": "#cfa985"
+      }
     },
     "combo": {
       "enabled": true,
@@ -379,13 +383,13 @@
       "blocking": {
         "enabled": true,
         "baseColor": "#0CF",
-        "minWidth": 30,
-        "maxWidth": 50,
-        "minAlpha": 0.15,
-        "maxAlpha": 0.4,
+        "minWidth": 10,
+        "maxWidth": 25,
+        "minAlpha": 0.05,
+        "maxAlpha": 0.2,
         "pulseSpeed": {
-          "high": 2.0,
-          "medium": 1.5,
+          "high": 1.6,
+          "medium": 1.3,
           "low": 1.0
         }
       },
@@ -396,32 +400,32 @@
           "3": "#FFFF00",
           "5": "#FF8800",
           "10": "#FF00FF",
-          "15": "#00FFFF"
+          "15": "#F4A460"
         },
         "intensity": {
           "1": {
-            "alpha": 0.3,
-            "width": 40,
+            "alpha": 0.1,
+            "width": 30,
             "duration": 300
           },
           "3": {
-            "alpha": 0.4,
-            "width": 50,
+            "alpha": 0.2,
+            "width": 40,
             "duration": 400
           },
           "5": {
-            "alpha": 0.5,
-            "width": 60,
+            "alpha": 0.3,
+            "width": 45,
             "duration": 500
           },
           "10": {
             "alpha": 0.6,
-            "width": 70,
+            "width": 55,
             "duration": 600
           },
           "15": {
             "alpha": 0.7,
-            "width": 80,
+            "width": 60,
             "duration": 800
           }
         },
