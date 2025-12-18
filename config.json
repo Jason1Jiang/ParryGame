@@ -335,13 +335,13 @@
           "enabled": true,
           "frequency": 800,
           "duration": 0.1,
-          "file": null //"assets/sounds/parry.mp3"
+          "file": null
         },
         "perfectParry": {
           "enabled": true,
           "frequency": 1200,
           "duration": 0.15,
-          "file": null //"assets/sounds/perfect_parry.mp3"
+          "file": null
         },
         "counter": {
           "enabled": true,
@@ -353,13 +353,13 @@
           "enabled": true,
           "frequency": 400,
           "duration": 0.3,
-          "file": null //"assets/sounds/slash.mp3"
+          "file": null
         },
         "kill": {
           "enabled": true,
           "frequency": 1000,
           "duration": 0.2,
-          "file": null //"assets/sounds/kill.mp3"
+          "file": null
         },
         "death": {
           "enabled": true,
