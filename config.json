@@ -168,13 +168,13 @@
       {
         "id": "blockCounter",
         "title": "🛡️ 格挡反击",
-        "description": "格挡敌人攻击后自动瞬移反击",
+        "description": "长按鼠标左键/空格/屏幕会触发护盾，格挡敌人攻击后自动瞬移反击",
         "duration": 5000
       },
       {
         "id": "perfectParry",
         "title": "⚡ 完美格挡",
-        "description": "在敌人攻击瞬间格挡可触发多次反击",
+        "description": "在敌人攻击瞬间格挡，可触发多次反击",
         "duration": 5000
       },
       {
