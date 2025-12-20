@@ -1003,6 +1003,19 @@
             .mobile-only {
                 display: block !important;
             }
+            
+            /* 隐藏移动端不需要的 WASD 相关元素 */
+            #controls {
+                display: none !important;
+            }
+            
+            #startScreen .hint {
+                display: none !important;
+            }
+            
+            .wasd-keys {
+                display: none !important;
+            }
         }
         
         /* 横屏样式 */
@@ -1130,7 +1143,7 @@
             <div>时间: <span id="time">0</span>s</div>
         </div>
     </div>
-    <div id="controls">
+    <div id="controls" class="desktop-only">
         WASD 移动<br>
         空格/鼠标 格挡
     </div>
@@ -1270,7 +1283,7 @@
         <button onclick="showDifficultySelect()">START</button>
         <button onclick="showLeaderboard()" style="margin-top: 15px;">RANKS</button>
         <button onclick="tutorial.show()" style="margin-top: 15px; font-size: 18px; padding: 12px 40px;">? 教程</button>
-        <div class="hint">WASD 移动 · 空格/鼠标 格挡</div>
+        <div class="hint desktop-only">WASD 移动 · 空格/鼠标 格挡</div>
     </div>
     <div id="difficultySelect">
         <h1>SELECT DIFFICULTY</h1>
