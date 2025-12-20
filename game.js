@@ -1791,7 +1791,7 @@ function triggerMultiCounter() {
     energy = Math.min(CONFIG.energy.max, energy + cfg.bonusEnergy);
     
     // 飘字提示
-    addFloatingText(player.x, player.y - 40, `MULTI COUNTER x${targets.length}!`, cfg.flashColor, 36);
+    addFloatingText(player.x, player.y - 40, `PERFECT x${targets.length}!`, cfg.flashColor, 36);
     
     // 创建紫色冲击波
     createShockwave(player.x, player.y, 150, cfg.flashColor);
