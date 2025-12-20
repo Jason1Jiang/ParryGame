@@ -600,10 +600,7 @@ function startGame() {
     
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('ui').style.display = 'block';
-    // 移动端不显示 WASD 控制提示
-    if (!isMobileDevice()) {
-        document.getElementById('controls').style.display = 'block';
-    }
+    document.getElementById('controls').style.display = 'block';
     document.getElementById('debugToggle').style.display = 'block';
     
     // 播放战斗音乐
