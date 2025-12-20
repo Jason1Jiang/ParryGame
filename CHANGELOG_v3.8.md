@@ -10,7 +10,7 @@
 ## 🎮 新增功能
 
 ### 手机端支持
-游戏现在完全支持移动设备！可以在手机和平板上流畅游玩。
+游戏现在完全支持移动设备！
 
 #### 核心特性
 1. **自动设备检测** - 自动识别移动设备并切换到移动模式
@@ -18,7 +18,8 @@
 3. **禁用移动** - 移动端无法主动移动，只能通过反击瞬移改变位置
 4. **屏内刷怪** - 敌人只在屏幕内刷新，不会从屏幕外攻击
 5. **响应式布局** - 画布自动适应屏幕尺寸，支持横屏和竖屏
-6. **触摸优化** - 防止缩放、滚动等干扰操作
+6. **触摸优化** - 防止缩放、滚动等默认行为
+7. **移动端 UI** - 专属操作提示和触摸反馈
 
 #### 游戏平衡调整（仅移动端）
 - 远程敌人距离 **+20%** - 给玩家更多反应时间
@@ -27,143 +28,43 @@
 
 ---
 
-## 🎨 UI/UX 改进
+## 🔧 技术实现
 
-### 移动端界面
-- 添加移动端操作提示："👆 点击屏幕格挡"
-- 触摸反馈效果（涟漪动画）
-- 自适应字体和按钮大小
-- 横屏模式优化布局
+### 新增函数
+- `isMobileDevice()` - 设备检测
+- `setupTouchControls()` - 触屏控制设置
+- `showTouchFeedback()` - 触摸反馈效果
+- `preventDefaultTouchBehaviors()` - 防止默认触摸行为
+- `resizeCanvas()` - 画布自适应
+- `showMobileHint()` - 显示移动端提示
 
-### 响应式设计
-- 竖屏：全屏显示，UI 元素自动缩放
-- 横屏：优化 UI 布局，确保不遮挡游戏区域
-- 屏幕旋转：自动调整画布大小
+### 修改函数
+- `init()` - 添加移动端初始化逻辑
+- `updatePlayer()` - 移动端禁用移动输入
+- `createEnemy()` - 移动端屏内刷新
+- `updateRangedEnemy()` - 移动端距离调整
+- `updateMeleeEnemy()` - 移动端警告时间调整
+- `calculateDynamicSpawnInterval()` - 移动端刷怪间隔调整
+- `startGame()` - 添加移动端提示显示
 
----
-
-## ⚙️ 技术改进
-
-### 设备检测
-```javascript
-// 自动检测移动设备
-- 触摸支持检测
-- 屏幕尺寸检测
-- User Agent 检测
-```
-
-### 触摸控制
-```javascript
-// 触屏事件映射
-touchstart → 格挡开始
-touchend → 格挡结束
-touchmove → 保持格挡
-```
-
-### 敌人刷新优化
-```javascript
-// 移动端强制屏内刷新
-- 最多尝试 30 次找到合适位置
-- 保持与玩家最小距离：150px
-- 保持敌人之间最小距离：100px
-```
-
----
-
-## 📝 配置更新
-
-### 新增配置项
-在 `config.json` 中新增 `mobile` 配置：
-
+### 新增配置
 ```json
 "mobile": {
   "enabled": true,
   "autoDetect": true,
   "disableMovement": true,
-  "touch": {
-    "enabled": true,
-    "feedbackEnabled": true,
-    "feedbackDuration": 600,
-    "preventZoom": true,
-    "preventScroll": true
-  },
-  "spawn": {
-    "forceInScreen": true,
-    "screenMargin": 80,
-    "minDistanceFromPlayer": 150
-  },
-  "gameplay": {
-    "rangedDistanceMultiplier": 1.2,
-    "meleeWarningMultiplier": 1.3,
-    "spawnIntervalMultiplier": 1.15
-  },
-  "ui": {
-    "showHint": true,
-    "hintDuration": 3000,
-    "fullscreen": true
-  },
-  "canvas": {
-    "autoResize": true,
-    "maintainAspectRatio": false,
-    "minWidth": 320,
-    "minHeight": 480
-  }
+  "touch": { ... },
+  "spawn": { ... },
+  "gameplay": { ... },
+  "ui": { ... },
+  "canvas": { ... }
 }
 ```
 
----
-
-## 🔧 修改文件
-
-### 核心文件
-1. **game.js** - 新增约 150 行代码
-   - 设备检测函数
-   - 触屏控制函数
-   - 画布自适应函数
-   - 移动端游戏逻辑调整
-
-2. **index.html** - 新增约 80 行代码
-   - 移动端样式（媒体查询）
-   - 横屏样式
-   - 触摸反馈动画
-   - 移动端提示 HTML
-
-3. **config.json** - 新增 mobile 配置项
-
----
-
-## 🎯 玩法变化
-
-### 移动端玩法
-- **无法移动** - 玩家无法主动移动
-- **依靠反击** - 只能通过格挡成功后的反击瞬移改变位置
-- **精准格挡** - 格挡时机变得更加重要
-- **挑战性高** - 无法躲避，必须精准格挡所有攻击
-
-### 桌面端玩法
-- **保持不变** - 所有原有功能和玩法保持不变
-- **WASD 移动** - 可以自由移动
-- **格挡反击** - 格挡成功后瞬移反击
-
----
-
-## 🌐 兼容性
-
-### 支持的设备
-- ✅ iOS 12+ (iPhone 6s 及以上)
-- ✅ Android 8+ (主流手机)
-- ✅ 平板设备 (iPad、Android 平板)
-
-### 支持的浏览器
-- ✅ Safari (iOS)
-- ✅ Chrome (Android)
-- ✅ Firefox (Android)
-- ✅ Edge (Android)
-
-### 不支持的设备
-- ❌ 功能机
-- ❌ 低端安卓 (< Android 8)
-- ❌ 旧版 iOS (< iOS 12)
+### 新增样式
+- 移动端响应式样式（`@media (max-width: 768px)`）
+- 横屏样式（`@media (orientation: landscape)`）
+- 触摸反馈动画（`@keyframes ripple`）
 
 ---
 
@@ -171,52 +72,82 @@ touchmove → 保持格挡
 
 ### 移动端操作
 1. **格挡** - 点击屏幕任意位置
-2. **反击** - 格挡成功后自动瞬移反击
-3. **移动** - 无法主动移动，只能通过反击瞬移
+2. **移动** - 无法主动移动，只能通过格挡反击瞬移
+3. **反击** - 格挡成功后自动瞬移反击（与桌面端相同）
 
-### 桌面端操作
+### 桌面端操作（不变）
 1. **移动** - WASD 键
 2. **格挡** - 空格键或鼠标左键
-3. **反击** - 格挡成功后自动瞬移反击
 
 ---
 
-## 🐛 已知问题
+## 🐛 修复问题
 
-### 无
-
----
-
-## 📚 相关文档
-
-- [设计文档](docs/optimization/MOBILE_ADAPTATION_v3.8.md) - 详细设计方案
-- [实现报告](MOBILE_IMPLEMENTATION_v3.8.md) - 实现细节和测试清单
+无
 
 ---
 
-## 🔮 后续计划
+## ⚠️ 已知问题
 
-### 可选功能
-1. **震动反馈** - 格挡成功时震动
-2. **PWA 支持** - 添加离线支持
-3. **移动端难度** - 专属难度选项（可选）
+无
+
+---
+
+## 📋 兼容性
+
+### 支持的设备
+- ✅ iOS 12+（iPhone 6s 及以上）
+- ✅ Android 8+（主流手机）
+- ✅ 平板设备（iPad、Android 平板）
+
+### 支持的浏览器
+- ✅ Safari（iOS）
+- ✅ Chrome（Android）
+- ✅ Firefox（Android）
+- ✅ Edge（Android）
+
+### 不支持的设备
+- ❌ 功能机
+- ❌ 低端安卓（< Android 8）
+- ❌ 旧版 iOS（< iOS 12）
+
+---
+
+## 📝 文档
+
+### 新增文档
+1. `docs/optimization/MOBILE_ADAPTATION_v3.8.md` - 设计文档
+2. `MOBILE_IMPLEMENTATION_v3.8.md` - 实现报告
+3. `MOBILE_TEST_GUIDE_v3.8.md` - 测试指南
+4. `CHANGELOG_v3.8.md` - 更新日志（本文件）
+
+---
+
+## 🚀 下一步
+
+### 建议测试
+1. 在真机上测试（iOS 和 Android）
+2. 测试不同屏幕尺寸
+3. 测试横屏和竖屏
+4. 测试长时间游玩性能
+
+### 后续优化（可选）
+1. 震动反馈 - 格挡成功时震动
+2. PWA 支持 - 添加离线支持
+3. 移动端专属难度（如需要）
 
 ---
 
 ## 👥 贡献者
 
-- 设计与实现：Kiro AI Assistant
-- 需求提供：用户
+- Kiro AI Assistant
 
 ---
 
-## 📊 统计信息
+## 📄 许可证
 
-- **新增代码**: 约 230 行
-- **修改文件**: 3 个核心文件
-- **新增配置**: 1 个配置项
-- **开发时间**: 约 2 小时
+与主项目相同
 
 ---
 
-**感谢使用！请在移动设备上测试并反馈！** 📱✨
+**感谢使用！如有问题请反馈。** 🎮✨
