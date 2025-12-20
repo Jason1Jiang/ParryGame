@@ -162,25 +162,33 @@
       {
         "id": "move",
         "title": "🎮 移动",
+        "titleEn": "Movement",
         "description": "使用 WASD 键移动角色",
+        "descriptionEn": "Use WASD keys to move your character",
         "duration": 5000
       },
       {
         "id": "blockCounter",
         "title": "🛡️ 格挡反击",
+        "titleEn": "Block & Counter",
         "description": "长按鼠标左键/空格/屏幕会触发护盾，格挡敌人攻击后自动瞬移反击",
+        "descriptionEn": "Hold left mouse button/space/screen to activate shield. Block enemy attacks to automatically teleport and counter",
         "duration": 5000
       },
       {
         "id": "perfectParry",
         "title": "⚡ 完美格挡",
+        "titleEn": "Perfect Parry",
         "description": "在敌人攻击瞬间格挡，可触发多次反击",
+        "descriptionEn": "Block at the exact moment of enemy attack to trigger multiple counters",
         "duration": 5000
       },
       {
         "id": "goal",
         "title": "🎯 目标",
+        "titleEn": "Objective",
         "description": "击杀尽可能多的敌人\n存活尽可能长的时间",
+        "descriptionEn": "Defeat as many enemies as possible\nSurvive as long as you can",
         "duration": 5000
       }
     ]

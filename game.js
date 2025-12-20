@@ -78,7 +78,6 @@ let canvas, ctx;
 let gameState = 'start'; // start, playing, gameOver
 let player, particles, enemies, bullets;
 let keys = {};
-let isMobile = false; // 移动端标识
 let energy, kills, gameTime, startTime;
 let lastEnemySpawn = 0;
 let enemySpawnInterval = 2000;
@@ -729,59 +728,8 @@ function createParticle() {
 function createEnemy(type) {
     let x, y;
     
-    // 移动端：强制在屏幕内刷新
-    if (isMobile && CONFIG.mobile?.spawn?.forceInScreen) {
-        const margin = CONFIG.mobile.spawn.screenMargin || 80;
-        const spawnWidth = CONFIG.canvas.width - margin * 2;
-        const spawnHeight = CONFIG.canvas.height - margin * 2;
-        const minDistFromPlayer = CONFIG.mobile.spawn.minDistanceFromPlayer || 150;
-        const minDistBetweenEnemies = CONFIG.spawn.minDistanceBetweenEnemies || 100;
-        
-        // 尝试找到合适的位置（最多尝试30次）
-        let attempts = 0;
-        let validPosition = false;
-        
-        while (attempts < 30 && !validPosition) {
-            x = margin + Math.random() * spawnWidth;
-            y = margin + Math.random() * spawnHeight;
-            
-            // 检查与玩家的距离
-            const dxPlayer = x - player.x;
-            const dyPlayer = y - player.y;
-            const distToPlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer);
-            
-            if (distToPlayer < minDistFromPlayer) {
-                attempts++;
-                continue;
-            }
-            
-            // 检查与其他敌人的距离
-            let tooClose = false;
-            for (const enemy of enemies) {
-                const dxEnemy = x - enemy.x;
-                const dyEnemy = y - enemy.y;
-                const distToEnemy = Math.sqrt(dxEnemy * dxEnemy + dyEnemy * dyEnemy);
-                
-                if (distToEnemy < minDistBetweenEnemies) {
-                    tooClose = true;
-                    break;
-                }
-            }
-            
-            if (!tooClose) {
-                validPosition = true;
-            }
-            attempts++;
-        }
-        
-        // 如果30次都没找到合适位置，使用最后一次的位置
-        if (!validPosition) {
-            x = margin + Math.random() * spawnWidth;
-            y = margin + Math.random() * spawnHeight;
-        }
-    }
-    // 桌面端：使用原有逻辑
-    else if (CONFIG.spawn.spawnInField) {
+    // 检查是否在场内生成
+    if (CONFIG.spawn.spawnInField) {
         // 在场内随机位置生成，保持一定边距，并避开玩家和其他敌人
         const margin = Math.min(CONFIG.spawn.spawnMargin, CONFIG.canvas.width / 4, CONFIG.canvas.height / 4);
         const spawnWidth = CONFIG.canvas.width - margin * 2;
@@ -1098,12 +1046,7 @@ function calculateDynamicSpawnInterval() {
         interval = dynamicSpawnInterval;
     }
     
-    // 5. 移动端：延长刷怪间隔
-    if (isMobile && CONFIG.mobile?.gameplay?.spawnIntervalMultiplier) {
-        interval *= CONFIG.mobile.gameplay.spawnIntervalMultiplier;
-    }
-    
-    // 6. 限制范围
+    // 5. 限制范围
     const minInterval = CONFIG.spawn.minInterval || 400;
     const maxInterval = CONFIG.spawn.maxInterval || 2500;
     return Math.max(minInterval, Math.min(maxInterval, interval));
@@ -2361,16 +2304,10 @@ function updateRangedEnemy(enemy, now) {
     const dist = Math.sqrt(dx * dx + dy * dy);
     enemy.angle = Math.atan2(dy, dx);
     
-    // 移动端：增加保持距离
-    let keepDistance = enemy.keepDistance;
-    if (isMobile && CONFIG.mobile?.gameplay?.rangedDistanceMultiplier) {
-        keepDistance *= CONFIG.mobile.gameplay.rangedDistanceMultiplier;
-    }
-    
     switch(enemy.state) {
         case 'idle':
             enemy.movePattern += 0.02;
-            const targetDist = keepDistance + Math.sin(enemy.movePattern) * 50;
+            const targetDist = enemy.keepDistance + Math.sin(enemy.movePattern) * 50;
             
             if (dist > targetDist + 30) {
                 enemy.x += Math.cos(enemy.angle) * enemy.moveSpeed;
@@ -2462,13 +2399,7 @@ function updateMeleeEnemy(enemy, now) {
             enemy.x += Math.cos(enemy.attackAngle + Math.PI / 2) * shake * 0.1;
             enemy.y += Math.sin(enemy.attackAngle + Math.PI / 2) * shake * 0.1;
             
-            // 移动端：延长警告时间
-            let warningTime = enemy.warningTime;
-            if (isMobile && CONFIG.mobile?.gameplay?.meleeWarningMultiplier) {
-                warningTime *= CONFIG.mobile.gameplay.meleeWarningMultiplier;
-            }
-            
-            if (warningElapsed > warningTime) {
+            if (warningElapsed > enemy.warningTime) {
                 enemy.state = 'attack';
                 enemy.stateTime = now;
                 enemy.attackStartX = enemy.x;
