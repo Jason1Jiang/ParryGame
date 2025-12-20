@@ -600,7 +600,10 @@ function startGame() {
     
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('ui').style.display = 'block';
-    document.getElementById('controls').style.display = 'block';
+    // 移动端不显示 WASD 控制提示
+    if (!isMobileDevice()) {
+        document.getElementById('controls').style.display = 'block';
+    }
     document.getElementById('debugToggle').style.display = 'block';
     
     // 播放战斗音乐
@@ -3670,7 +3673,9 @@ class TutorialManager {
     
     show() {
         document.getElementById('tutorialScreen').style.display = 'flex';
-        this.showStep(0);
+        // 移动端跳过移动步骤，直接从格挡反击开始
+        const startStep = isMobileDevice() ? 1 : 0;
+        this.showStep(startStep);
     }
     
     showStep(step) {
